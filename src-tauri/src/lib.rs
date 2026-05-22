@@ -27,6 +27,7 @@ pub fn run() {
             commands::set_account_password,
             commands::backup_dir,
             commands::create_backup,
+            commands::create_web_backup,
             commands::list_backups,
             commands::restore_backup,
             commands::schedule_status,

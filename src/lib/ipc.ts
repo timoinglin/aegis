@@ -111,6 +111,11 @@ export function createBackup(): Promise<BackupResult> {
   return invoke<BackupResult>("create_backup");
 }
 
+/** Back up only the registration-portal (web_*) tables. */
+export function createWebBackup(): Promise<BackupResult> {
+  return invoke<BackupResult>("create_web_backup");
+}
+
 /** Backups available to restore, newest first. */
 export function listBackups(): Promise<BackupFile[]> {
   return invoke<BackupFile[]>("list_backups");

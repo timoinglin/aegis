@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Database, FolderOpen, HardDriveDownload, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Database, FolderOpen, HardDriveDownload, CheckCircle2, AlertTriangle, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { backupDir, createBackup } from "@/lib/ipc";
+import { backupDir, createBackup, createWebBackup } from "@/lib/ipc";
 import type { BackupResult, HealthReport } from "@/lib/types";
 import { ScheduleCard } from "./ScheduleCard";
 
@@ -34,6 +34,10 @@ export function BackupPage({ health }: { health: HealthReport | null }) {
     void backupDir().then(setDir);
   }, []);
 
+  const [webBusy, setWebBusy] = useState(false);
+  const [webResult, setWebResult] = useState<BackupResult | null>(null);
+  const [webError, setWebError] = useState<string | null>(null);
+
   const run = async () => {
     setBusy(true);
     setResult(null);
@@ -44,6 +48,19 @@ export function BackupPage({ health }: { health: HealthReport | null }) {
       setError(String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const runWeb = async () => {
+    setWebBusy(true);
+    setWebResult(null);
+    setWebError(null);
+    try {
+      setWebResult(await createWebBackup());
+    } catch (e) {
+      setWebError(String(e));
+    } finally {
+      setWebBusy(false);
     }
   };
 
@@ -93,6 +110,36 @@ export function BackupPage({ health }: { health: HealthReport | null }) {
       </Card>
 
       {result && <BackupSummary result={result} />}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-brand" />
+            Website data only
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-slate-300">
+            Backs up just your website's tables (news, forum, tickets, shop settings…).
+          </p>
+          <p className="text-xs text-slate-500">
+            Only useful if you installed the registration portal (wow-mop-registration). Otherwise
+            you'll see "no website tables found".
+          </p>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={runWeb} disabled={webBusy || !dbReady}>
+              {webBusy ? "Backing up…" : "Back up website data"}
+            </Button>
+          </div>
+          {webError && (
+            <p className="flex items-center gap-1.5 text-sm text-amber-300">
+              <AlertTriangle className="h-4 w-4" /> {webError}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {webResult && <BackupSummary result={webResult} />}
 
       <ScheduleCard />
     </div>

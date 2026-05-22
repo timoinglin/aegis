@@ -191,6 +191,71 @@ pub fn list_backups(dir: &Path) -> Vec<crate::models::BackupFile> {
     files
 }
 
+/// The login/auth DB name (where web_* tables live) per worldserver.conf, else "auth".
+fn login_db(settings: &Settings) -> String {
+    crate::services::repack_conf::read(settings.server_path.as_deref(), settings.repack_path.as_deref())
+        .and_then(|i| i.databases.into_iter().next())
+        .unwrap_or_else(|| "auth".into())
+}
+
+/// Names of the registration-portal tables (web_*) in the auth DB.
+fn web_tables(settings: &Settings, db: &str) -> Vec<String> {
+    let sql = format!(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema='{db}' AND table_name LIKE 'web\\_%' ORDER BY table_name"
+    );
+    mysql::query(settings, &sql)
+        .map(|out| out.lines().map(|l| l.trim().to_string()).filter(|s| !s.is_empty()).collect())
+        .unwrap_or_default()
+}
+
+/// Back up only the registration-portal (web_*) tables from the auth DB.
+pub fn create_web_backup(app: &AppHandle, settings: &Settings) -> Result<BackupResult, String> {
+    let dir = resolve_dir(app, settings)?;
+    let db = login_db(settings);
+    let tables = web_tables(settings, &db);
+    if tables.is_empty() {
+        return Err("No website tables found — this is only useful if you installed the registration portal (wow-mop-registration).".into());
+    }
+
+    let stamp = Local::now().format("%Y%m%d-%H%M%S");
+    let path = dir.join(format!("aegis-web-{stamp}.sql"));
+    let file = File::create(&path).map_err(|e| format!("Couldn't create the backup file: {e}"))?;
+
+    let started = Instant::now();
+    let mut cmd = mysql::base_cmd(settings, "mysqldump")?;
+    cmd.arg("--single-transaction")
+        .arg("--default-character-set=utf8mb4")
+        .arg(&db)
+        .args(&tables)
+        .stdout(Stdio::from(file))
+        .stderr(Stdio::piped());
+
+    let output = cmd
+        .spawn()
+        .map_err(|e| format!("Couldn't start mysqldump: {e}"))?
+        .wait_with_output()
+        .map_err(|e| e.to_string())?;
+
+    let secrets = settings.secrets();
+    if !output.status.success() {
+        let raw = String::from_utf8_lossy(&output.stderr).into_owned();
+        let _ = fs::remove_file(&path);
+        logging::log_op(app, "ERROR", "backup/web", &format!("mysqldump failed: {raw}"), &secrets);
+        return Err("The website backup didn't complete. See the log for details.".into());
+    }
+
+    let size_bytes = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    let result = BackupResult {
+        path: path.to_string_lossy().into_owned(),
+        size_bytes,
+        completed: has_completion_footer(&path),
+        databases: vec![DbBackupInfo { name: format!("{db} (web_* only)"), tables: tables.len() as u64, approx_rows: 0 }],
+        duration_secs: started.elapsed().as_secs(),
+    };
+    logging::log_op(app, "INFO", "backup/web", &format!("{} ({} tables, {size_bytes} bytes)", result.path, tables.len()), &secrets);
+    Ok(result)
+}
+
 /// Keep the `keep` newest backups, delete the rest. Returns how many were removed.
 /// keep == 0 means keep everything.
 pub fn prune_backups(dir: &Path, keep: u32) -> usize {

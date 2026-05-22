@@ -138,6 +138,17 @@ pub fn apply_schedule(app: AppHandle, settings: Settings) -> Result<ScheduleStat
     Ok(status)
 }
 
+/// Back up only the registration-portal (web_*) tables.
+#[tauri::command]
+pub async fn create_web_backup(app: AppHandle) -> Result<BackupResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        backup::create_web_backup(&app, &settings)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Backups available to restore, newest first.
 #[tauri::command]
 pub fn list_backups(app: AppHandle) -> Vec<BackupFile> {

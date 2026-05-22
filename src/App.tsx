@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, HardDriveDownload, Info, Puzzle, Rocket, RotateCcw, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
+import { Activity, Boxes, HardDriveDownload, Info, Puzzle, Rocket, RotateCcw, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSettings } from "@/lib/ipc";
 import { useHealth } from "@/features/health/useHealth";
@@ -12,9 +12,10 @@ import { RestorePage } from "@/features/restore/RestorePage";
 import { AboutPage } from "@/features/about/AboutPage";
 import { ServerPage } from "@/features/server/ServerPage";
 import { AddonsPage } from "@/features/addons/AddonsPage";
+import { ToolsPage } from "@/features/tools/ToolsPage";
 import { SetupWizard } from "@/features/setup/SetupWizard";
 
-type Tab = "status" | "server" | "accounts" | "backup" | "restore" | "addons" | "settings" | "about";
+type Tab = "status" | "server" | "accounts" | "backup" | "restore" | "addons" | "tools" | "settings" | "about";
 
 export default function App() {
   const { report, loading, refresh, recheck } = useHealth();
@@ -48,6 +49,7 @@ export default function App() {
           <NavItem icon={<HardDriveDownload className="h-4 w-4" />} label="Backup" active={tab === "backup"} onClick={() => setTab("backup")} />
           <NavItem icon={<RotateCcw className="h-4 w-4" />} label="Restore" active={tab === "restore"} onClick={() => setTab("restore")} />
           <NavItem icon={<Puzzle className="h-4 w-4" />} label="Add-ons" active={tab === "addons"} onClick={() => setTab("addons")} />
+          <NavItem icon={<Boxes className="h-4 w-4" />} label="My Tools" active={tab === "tools"} onClick={() => setTab("tools")} />
           <NavItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
           <NavItem icon={<Info className="h-4 w-4" />} label="About" active={tab === "about"} onClick={() => setTab("about")} />
         </nav>
@@ -58,6 +60,7 @@ export default function App() {
           {tab === "backup" && <BackupPage health={report} />}
           {tab === "restore" && <RestorePage health={report} />}
           {tab === "addons" && <AddonsPage />}
+          {tab === "tools" && <ToolsPage />}
           {tab === "settings" && <SettingsPage onSaved={refresh} />}
           {tab === "about" && <AboutPage />}
         </main>
