@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, CheckCircle2, XCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, ArrowRight, ArrowLeft, ServerCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PathField } from "@/components/PathField";
 import {
@@ -16,7 +16,7 @@ import type { Settings } from "@/lib/types";
 const inputCls =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm outline-none focus:border-brand";
 
-const TOTAL_STEPS = 5; // welcome, repack, database, client, done
+const TOTAL_STEPS = 6; // welcome, repack, database, remote access, client, done
 
 /**
  * First-run guided setup. Order matters: we find the Repack folder first because
@@ -28,6 +28,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [draft, setDraft] = useState<Settings | null>(null);
   const [testing, setTesting] = useState(false);
   const [dbOk, setDbOk] = useState<boolean | null>(null);
+  const [raTesting, setRaTesting] = useState(false);
+  const [raOk, setRaOk] = useState<boolean | null>(null);
+  const [showRaHow, setShowRaHow] = useState(false);
 
   useEffect(() => {
     void getSettings().then(setDraft);
@@ -40,7 +43,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     if (!draft) return;
     if (step === 1 && !draft.repackPath) void autodetectRepackPath(draft.serverPath).then((p) => p && set("repackPath", p));
     if (step === 2 && !draft.serverPath) void autodetectServerPath().then((p) => p && set("serverPath", p));
-    if (step === 3 && !draft.clientPath) void autodetectClientPath().then((p) => p && set("clientPath", p));
+    if (step === 4 && !draft.clientPath) void autodetectClientPath().then((p) => p && set("clientPath", p));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, ready]);
 
@@ -76,6 +79,20 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       setDbOk(false);
     } finally {
       setTesting(false);
+    }
+  };
+
+  const testRa = async () => {
+    setRaTesting(true);
+    setRaOk(null);
+    try {
+      await saveSettings(draft);
+      const report = await runHealthChecks();
+      setRaOk(report.checks.find((c) => c.id === "ra")?.status === "ok");
+    } catch {
+      setRaOk(false);
+    } finally {
+      setRaTesting(false);
     }
   };
 
@@ -149,6 +166,36 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           )}
 
           {step === 3 && (
+            <Field title="Remote Access (for account tools)" hint="This lets Aegis create accounts, set GM levels and reset passwords. New repacks have it switched off — set it up now, or skip and do it later from the Accounts page.">
+              <div className="grid grid-cols-4 gap-2">
+                <SmallField label="Host"><input className={inputCls} value={draft.raHost} onChange={(e) => set("raHost", e.target.value)} /></SmallField>
+                <SmallField label="Port"><input className={inputCls} type="number" value={draft.raPort} onChange={(e) => set("raPort", Number(e.target.value))} /></SmallField>
+                <SmallField label="User"><input className={inputCls} value={draft.raUser} onChange={(e) => set("raUser", e.target.value)} /></SmallField>
+                <SmallField label="Password"><input className={inputCls} type="password" value={draft.raPassword} onChange={(e) => set("raPassword", e.target.value)} /></SmallField>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={testRa} disabled={raTesting}>{raTesting ? "Testing…" : "Test Remote Access"}</Button>
+                {raOk === true && <span className="flex items-center gap-1.5 text-sm text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Reachable!</span>}
+                {raOk === false && <span className="flex items-center gap-1.5 text-sm text-amber-300"><XCircle className="h-4 w-4" /> Not reachable yet — switch it on below, or skip for now.</span>}
+              </div>
+              <button type="button" onClick={() => setShowRaHow((v) => !v)} className="flex items-center gap-1.5 text-left text-xs text-brand-glow">
+                <ServerCog className="h-3.5 w-3.5" /> {showRaHow ? "Hide steps" : "New repack? Here's how to switch it on"}
+              </button>
+              {showRaHow && (
+                <ol className="list-inside list-decimal space-y-2 rounded-lg bg-slate-800/30 p-3 text-xs text-slate-300">
+                  <li>Open <span className="text-slate-200">worldserver.conf</span> (in your Repack folder), find <code className="rounded bg-slate-900 px-1">Ra.Enable = 0</code> and change the 0 to a 1, then save.</li>
+                  <li>Start or restart your worldserver from the <strong>Server</strong> tab.</li>
+                  <li>
+                    In the worldserver console window, type these two lines (choose your own name &amp; password):
+                    <pre className="mt-1 select-all whitespace-pre-wrap rounded bg-slate-950 p-2 text-emerald-200">account create aegis ChangeThisPassword{"\n"}account set gmlevel aegis 9 -1</pre>
+                  </li>
+                  <li>Enter that same username and password above, then Test.</li>
+                </ol>
+              )}
+            </Field>
+          )}
+
+          {step === 4 && (
             <Field title="Your WoW client" hint="The folder with Wow.exe. Aegis uses this to install handy add-ons (like the GM panel) into your game. Optional — you can skip it.">
               <PathField
                 label="Client folder"
@@ -161,12 +208,13 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             </Field>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="flex flex-col gap-3 text-sm text-slate-300">
               <div className="flex items-center gap-2 text-emerald-300"><CheckCircle2 className="h-5 w-5" /> <span className="font-medium">You're all set!</span></div>
               <p>Aegis is ready. The Status page shows everything at a glance, and you can manage your server, accounts and backups from the menu.</p>
               <SummaryLine label="Repack" value={draft.repackPath} />
               <SummaryLine label="Database" value={draft.serverPath} />
+              <SummaryLine label="Remote Access" value={draft.raUser ? `${draft.raHost}:${draft.raPort} (${draft.raUser})` : "— (skipped)"} />
               <SummaryLine label="Client" value={draft.clientPath} />
             </div>
           )}
