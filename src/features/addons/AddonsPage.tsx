@@ -119,7 +119,7 @@ function AddonRow({
         <img
           src={image}
           alt=""
-          className={`${addon.featured ? "h-16 w-28" : "h-12 w-12"} shrink-0 rounded-md object-cover`}
+          className={`${addon.featured ? "w-48" : "w-28"} aspect-[4/3] shrink-0 rounded-md object-cover`}
         />
       )}
       <div className="flex-1">

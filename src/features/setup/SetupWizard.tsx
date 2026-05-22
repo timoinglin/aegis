@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, CheckCircle2, XCircle, ArrowRight, ArrowLeft, ServerCog } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, ServerCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PathField } from "@/components/PathField";
 import {
@@ -108,7 +108,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
       <div className="flex max-h-[90vh] w-[640px] flex-col gap-5 overflow-auto rounded-2xl border border-slate-800 bg-slate-900 p-7 shadow-2xl">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-7 w-7 text-brand" />
+          <img src="/logo.png" alt="Aegis" className="h-12 w-12 shrink-0" />
           <div>
             <h2 className="text-lg font-semibold">Welcome to Aegis</h2>
             <p className="text-xs text-slate-400">Step {step + 1} of {TOTAL_STEPS}</p>
