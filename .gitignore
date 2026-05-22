@@ -20,3 +20,7 @@ Thumbs.db
 
 # Local working art (the non-final logo lives at repo root during dev)
 /aegis_logo.png
+
+# Updater signing keys + password — NEVER commit these (only the public key,
+# which lives in tauri.conf.json, is safe to share). Store as CI secrets.
+src-tauri/.keys/

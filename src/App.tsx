@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, HardDriveDownload, RotateCcw, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
+import { Activity, HardDriveDownload, Info, RotateCcw, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHealth } from "@/features/health/useHealth";
 import { HealthBanner } from "@/features/health/HealthBanner";
@@ -8,8 +8,9 @@ import { SettingsPage } from "@/features/settings/SettingsPage";
 import { AccountsPage } from "@/features/accounts/AccountsPage";
 import { BackupPage } from "@/features/backup/BackupPage";
 import { RestorePage } from "@/features/restore/RestorePage";
+import { AboutPage } from "@/features/about/AboutPage";
 
-type Tab = "status" | "accounts" | "backup" | "restore" | "settings";
+type Tab = "status" | "accounts" | "backup" | "restore" | "settings" | "about";
 
 export default function App() {
   const { report, loading, refresh, recheck } = useHealth();
@@ -26,7 +27,7 @@ export default function App() {
           <NavItem icon={<HardDriveDownload className="h-4 w-4" />} label="Backup" active={tab === "backup"} onClick={() => setTab("backup")} />
           <NavItem icon={<RotateCcw className="h-4 w-4" />} label="Restore" active={tab === "restore"} onClick={() => setTab("restore")} />
           <NavItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
-          {/* Reserved for v0.1+: About */}
+          <NavItem icon={<Info className="h-4 w-4" />} label="About" active={tab === "about"} onClick={() => setTab("about")} />
         </nav>
         <main className="flex-1 overflow-auto p-5">
           {tab === "status" && <StatusCard report={report} loading={loading} onRecheck={recheck} />}
@@ -34,6 +35,7 @@ export default function App() {
           {tab === "backup" && <BackupPage health={report} />}
           {tab === "restore" && <RestorePage health={report} />}
           {tab === "settings" && <SettingsPage onSaved={refresh} />}
+          {tab === "about" && <AboutPage />}
         </main>
       </div>
     </div>
