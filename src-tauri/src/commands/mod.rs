@@ -3,8 +3,8 @@
 
 use tauri::AppHandle;
 
-use crate::models::{AddonInfo, BackupFile, BackupResult, CharacterInfo, DbConnInfo, HealthReport, RestoreResult, ScheduleStatus, ServerStatus, Settings};
-use crate::services::{accounts, addons, backup, characters, health, logging, paths, repack_conf, restore, scheduler, server_control, settings_store};
+use crate::models::{AddonInfo, BackupFile, BackupResult, CharacterInfo, DbConnInfo, HealthReport, MaintenanceResult, RestoreResult, ScheduleStatus, ServerStatus, Settings};
+use crate::services::{accounts, addons, backup, characters, health, logging, maintenance, paths, repack_conf, restore, scheduler, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -182,6 +182,17 @@ pub async fn install_addon(app: AppHandle, id: String) -> Result<String, String>
             Err(e) => logging::log_op(&app, "ERROR", "addon/install", &format!("{id}: {e}"), &settings.secrets()),
         }
         result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Database upkeep via mysqlcheck. mode: "analyze" | "optimize" | "repair".
+#[tauri::command]
+pub async fn db_maintenance(app: AppHandle, mode: String) -> Result<MaintenanceResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        maintenance::run(&app, &settings, &mode)
     })
     .await
     .map_err(|e| e.to_string())?

@@ -86,6 +86,13 @@ export interface ServerStatus {
   worldserver: ServiceState;
 }
 
+export interface MaintenanceResult {
+  mode: string;
+  message: string;
+  healthy: boolean;
+  details: string;
+}
+
 export interface CharacterInfo {
   guid: number;
   name: string;

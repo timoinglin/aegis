@@ -37,6 +37,7 @@ pub fn run() {
             commands::restore_backup,
             commands::schedule_status,
             commands::apply_schedule,
+            commands::db_maintenance,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aegis");

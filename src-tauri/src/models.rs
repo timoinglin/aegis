@@ -140,6 +140,17 @@ pub struct ScheduleStatus {
     pub next_run: Option<String>,
 }
 
+/// Result of a database maintenance run (analyze / optimize / check+repair).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaintenanceResult {
+    pub mode: String,
+    pub message: String,
+    pub healthy: bool,
+    /// Raw mysqlcheck output (per-table), for transparency / the log.
+    pub details: String,
+}
+
 /// A character row, for the Characters list.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

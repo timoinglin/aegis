@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Boxes, HardDriveDownload, Info, Puzzle, Rocket, RotateCcw, Settings as SettingsIcon, ShieldCheck, UserSquare2, Users } from "lucide-react";
+import { Activity, Boxes, HardDriveDownload, Info, Puzzle, Rocket, RotateCcw, Settings as SettingsIcon, ShieldCheck, UserSquare2, Users, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSettings } from "@/lib/ipc";
 import { useHealth } from "@/features/health/useHealth";
@@ -14,9 +14,10 @@ import { ServerPage } from "@/features/server/ServerPage";
 import { AddonsPage } from "@/features/addons/AddonsPage";
 import { ToolsPage } from "@/features/tools/ToolsPage";
 import { CharactersPage } from "@/features/characters/CharactersPage";
+import { MaintenancePage } from "@/features/maintenance/MaintenancePage";
 import { SetupWizard } from "@/features/setup/SetupWizard";
 
-type Tab = "status" | "server" | "accounts" | "characters" | "backup" | "restore" | "addons" | "tools" | "settings" | "about";
+type Tab = "status" | "server" | "accounts" | "characters" | "backup" | "restore" | "maintenance" | "addons" | "tools" | "settings" | "about";
 
 export default function App() {
   const { report, loading, refresh, recheck } = useHealth();
@@ -50,6 +51,7 @@ export default function App() {
           <NavItem icon={<UserSquare2 className="h-4 w-4" />} label="Characters" active={tab === "characters"} onClick={() => setTab("characters")} />
           <NavItem icon={<HardDriveDownload className="h-4 w-4" />} label="Backup" active={tab === "backup"} onClick={() => setTab("backup")} />
           <NavItem icon={<RotateCcw className="h-4 w-4" />} label="Restore" active={tab === "restore"} onClick={() => setTab("restore")} />
+          <NavItem icon={<Wrench className="h-4 w-4" />} label="Maintenance" active={tab === "maintenance"} onClick={() => setTab("maintenance")} />
           <NavItem icon={<Puzzle className="h-4 w-4" />} label="Add-ons" active={tab === "addons"} onClick={() => setTab("addons")} />
           <NavItem icon={<Boxes className="h-4 w-4" />} label="Other tools" active={tab === "tools"} onClick={() => setTab("tools")} />
           <NavItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
@@ -62,6 +64,7 @@ export default function App() {
           {tab === "characters" && <CharactersPage health={report} />}
           {tab === "backup" && <BackupPage health={report} />}
           {tab === "restore" && <RestorePage health={report} />}
+          {tab === "maintenance" && <MaintenancePage health={report} />}
           {tab === "addons" && <AddonsPage />}
           {tab === "tools" && <ToolsPage />}
           {tab === "settings" && <SettingsPage onSaved={refresh} />}

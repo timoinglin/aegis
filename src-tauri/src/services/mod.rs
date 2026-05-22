@@ -4,6 +4,7 @@ pub mod backup;
 pub mod characters;
 pub mod health;
 pub mod logging;
+pub mod maintenance;
 pub mod mysql;
 pub mod paths;
 pub mod ra;

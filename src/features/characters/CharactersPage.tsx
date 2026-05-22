@@ -50,7 +50,7 @@ function CharactersInner() {
     setMsg(null);
     setErr(null);
     try {
-      setMsg(await backupCharacter(String(c.guid)));
+      setMsg(await backupCharacter(c.name));
     } catch (e) {
       setErr(String(e));
     } finally {

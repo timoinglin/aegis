@@ -6,6 +6,7 @@ import type {
   CharacterInfo,
   DbConnInfo,
   HealthReport,
+  MaintenanceResult,
   RestoreResult,
   ScheduleStatus,
   ServerStatus,
@@ -60,6 +61,11 @@ export function serverStatus(): Promise<ServerStatus> {
 /** action: "start" | "stop" | "restart" (per service) or "start_all". */
 export function serverAction(service: string, action: string): Promise<string> {
   return invoke<string>("server_action", { service, action });
+}
+
+/** Database upkeep. mode: "analyze" | "optimize" | "repair". */
+export function dbMaintenance(mode: "analyze" | "optimize" | "repair"): Promise<MaintenanceResult> {
+  return invoke<MaintenanceResult>("db_maintenance", { mode });
 }
 
 // --- Characters (.pdump via Remote Access) ---
