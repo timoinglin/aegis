@@ -58,39 +58,45 @@ pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
 /// Best-effort probe for the repack's "_Server" folder. Validated by finding
 /// mysql\bin\mysqldump.exe inside it. Returns the first match, or None.
 ///
-/// TODO(v0.1): widen the candidate set (registry lookup, drive scan with a depth
-/// cap). For now we check the common EmuCoach install layouts.
+/// Find the repack's "_Server" folder generically — scan each drive's top-level
+/// folders for the `_Server` layout, whatever the install folder is named. This
+/// catches `D:\anything\...\Database\_Server` without hard-coding any path.
 pub fn autodetect_server_path() -> Option<String> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    for drive in ["C:", "D:", "E:"] {
-        candidates.push(PathBuf::from(format!("{drive}\\mop_repack\\MOPPREMIUM\\Database\\_Server")));
-        candidates.push(PathBuf::from(format!("{drive}\\MOPPREMIUM\\Database\\_Server")));
-        candidates.push(PathBuf::from(format!("{drive}\\EmuCoach\\MOPPREMIUM\\Database\\_Server")));
-    }
-    candidates
-        .into_iter()
-        .find(|p| crate::services::mysql::has_bins(p))
-        .map(|p| p.to_string_lossy().into_owned())
+    // Relative layouts to probe under each top-level folder on a drive.
+    let rels = ["Database\\_Server", "_Server", "MOPPREMIUM\\Database\\_Server"];
+    scan_drives(&rels, |p| crate::services::mysql::has_bins(p))
 }
 
-/// Best-effort guess for the "Repack" folder (authserver.exe / worldserver.exe).
-/// Usually sits beside the `_Server` folder under the install root.
+/// Find the "Repack" folder (authserver.exe / worldserver.exe). Prefer deriving
+/// it from the known _Server path (it's a sibling under the install root); fall
+/// back to a generic drive scan.
 pub fn autodetect_repack_path(server_path: Option<&str>) -> Option<String> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(sp) = server_path {
-        // ...\Database\_Server -> ...\MOPPREMIUM\Repack
-        if let Some(root) = Path::new(sp).parent().and_then(Path::parent) {
-            candidates.push(root.join("Repack"));
+    // ...\Database\_Server -> ...\<install root>\Repack
+    if let Some(root) = server_path.and_then(|sp| Path::new(sp).parent().and_then(Path::parent)) {
+        let repack = root.join("Repack");
+        if repack.join("worldserver.exe").is_file() {
+            return Some(repack.to_string_lossy().into_owned());
         }
     }
-    for drive in ["C:", "D:", "E:"] {
-        candidates.push(PathBuf::from(format!("{drive}\\mop_repack\\MOPPREMIUM\\Repack")));
-        candidates.push(PathBuf::from(format!("{drive}\\MOPPREMIUM\\Repack")));
+    let rels = ["Repack", "MOPPREMIUM\\Repack"];
+    scan_drives(&rels, |p| p.join("worldserver.exe").is_file())
+}
+
+/// For each drive, check `<drive>\<each top-level folder>\<rel>` against `matches`,
+/// returning the first hit. A shallow, bounded scan (no deep recursion).
+fn scan_drives(rels: &[&str], matches: impl Fn(&Path) -> bool) -> Option<String> {
+    for drive in ["C:", "D:", "E:", "F:"] {
+        let Ok(children) = fs::read_dir(format!("{drive}\\")) else { continue };
+        for child in children.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
+            for rel in rels {
+                let candidate = child.join(rel);
+                if matches(&candidate) {
+                    return Some(candidate.to_string_lossy().into_owned());
+                }
+            }
+        }
     }
-    candidates
-        .into_iter()
-        .find(|p| p.join("worldserver.exe").is_file())
-        .map(|p| p.to_string_lossy().into_owned())
+    None
 }
 
 /// Best-effort guess for the WoW client folder (contains Wow.exe). Scans drive
