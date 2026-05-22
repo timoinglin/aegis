@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, FolderSearch, CheckCircle2, XCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PathField } from "@/components/PathField";
 import {
   autodetectClientPath,
   autodetectRepackPath,
@@ -15,12 +16,12 @@ import type { Settings } from "@/lib/types";
 const inputCls =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm outline-none focus:border-brand";
 
-const TOTAL_STEPS = 5; // welcome, database, repack, client, done
+const TOTAL_STEPS = 5; // welcome, repack, database, client, done
 
 /**
- * First-run guided setup. Walks the owner through the four things Aegis needs:
- * a working DB connection, the _Server folder, the Repack folder, and the WoW
- * client folder. Auto-detects each where it can.
+ * First-run guided setup. Order matters: we find the Repack folder first because
+ * its worldserver.conf holds the database connection — Aegis reads it from there,
+ * then we point at the _Server tools and test, then the WoW client.
  */
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
@@ -32,25 +33,22 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     void getSettings().then(setDraft);
   }, []);
 
-  // Auto-detect each folder when arriving at its step, and once the draft loads.
-  // Keyed on `ready` (not `draft`) so typing in a field doesn't re-trigger detection.
   const ready = draft != null;
+
+  // Auto-detect each folder when arriving at its step (only if still empty).
   useEffect(() => {
     if (!draft) return;
-    if (step === 1) {
-      void (async () => {
-        let sp = draft.serverPath;
-        if (!sp) {
-          sp = await autodetectServerPath();
-          if (sp) set("serverPath", sp);
-        }
-        await fillFromConfig(sp, draft.repackPath);
-      })();
-    }
-    if (step === 2 && !draft.repackPath) void autodetectRepackPath(draft.serverPath).then((p) => p && set("repackPath", p));
+    if (step === 1 && !draft.repackPath) void autodetectRepackPath(draft.serverPath).then((p) => p && set("repackPath", p));
+    if (step === 2 && !draft.serverPath) void autodetectServerPath().then((p) => p && set("serverPath", p));
     if (step === 3 && !draft.clientPath) void autodetectClientPath().then((p) => p && set("clientPath", p));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, ready]);
+
+  // Whenever the repack folder is known, pull the DB connection from its config.
+  useEffect(() => {
+    if (draft?.repackPath) void fillFromConfig(draft.serverPath, draft.repackPath);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.repackPath]);
 
   if (!draft) return null;
 
@@ -104,30 +102,45 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           <div className="h-full bg-brand transition-all" style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }} />
         </div>
 
-        <div className="min-h-[180px]">
+        <div className="min-h-[200px]">
           {step === 0 && (
             <div className="flex flex-col gap-3 text-sm text-slate-300">
               <p>Let's get Aegis connected to your server. It only takes a minute.</p>
-              <p>We'll point Aegis at three folders and check the database connection. Aegis will try to find everything automatically — you just confirm.</p>
+              <p>We'll point Aegis at a few folders — it tries to find them automatically and checks each one is correct. You just confirm.</p>
               <p className="text-slate-400">You can change any of this later in Settings.</p>
             </div>
           )}
 
           {step === 1 && (
-            <Field
-              title="Your database"
-              hint="The _Server folder is the one with mysql inside it. Aegis reads your real database settings from your server's config automatically — even if you changed the defaults."
-            >
-              <PathInput label="_Server folder" value={draft.serverPath} placeholder="C:\…\MOPPREMIUM\Database\_Server" onChange={(v) => set("serverPath", v)} onDetect={async () => set("serverPath", (await autodetectServerPath()) ?? draft.serverPath)} />
+            <Field title="Your server programs" hint="The Repack folder holds authserver.exe and worldserver.exe. Aegis also reads your database settings from this folder, automatically.">
+              <PathField
+                label="Repack folder"
+                kind="repack"
+                value={draft.repackPath}
+                placeholder="C:\…\MOPPREMIUM\Repack"
+                onChange={(v) => set("repackPath", v)}
+                onDetect={async () => set("repackPath", (await autodetectRepackPath(draft.serverPath)) ?? draft.repackPath)}
+              />
+            </Field>
+          )}
+
+          {step === 2 && (
+            <Field title="Your database" hint="The _Server folder is the one with mysql inside it. Your login details were filled in from your server's config — just test the connection.">
+              <PathField
+                label="_Server folder"
+                kind="server"
+                value={draft.serverPath}
+                placeholder="C:\…\MOPPREMIUM\Database\_Server"
+                onChange={(v) => set("serverPath", v)}
+                onDetect={async () => set("serverPath", (await autodetectServerPath()) ?? draft.serverPath)}
+              />
               <div className="grid grid-cols-3 gap-2">
                 <SmallField label="Host"><input className={inputCls} value={draft.dbHost} onChange={(e) => set("dbHost", e.target.value)} /></SmallField>
                 <SmallField label="User"><input className={inputCls} value={draft.dbUser} onChange={(e) => set("dbUser", e.target.value)} /></SmallField>
                 <SmallField label="Password"><input className={inputCls} type="password" value={draft.dbPassword} onChange={(e) => set("dbPassword", e.target.value)} /></SmallField>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="outline" onClick={() => fillFromConfig(draft.serverPath, draft.repackPath)}>
-                  Read from server config
-                </Button>
+                <Button variant="outline" onClick={() => fillFromConfig(draft.serverPath, draft.repackPath)}>Re-read from config</Button>
                 <Button onClick={testConnection} disabled={testing}>{testing ? "Testing…" : "Test connection"}</Button>
                 {dbOk === true && <span className="flex items-center gap-1.5 text-sm text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Connected!</span>}
                 {dbOk === false && <span className="flex items-center gap-1.5 text-sm text-rose-300"><XCircle className="h-4 w-4" /> Couldn't connect — check the folder and password.</span>}
@@ -135,15 +148,16 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             </Field>
           )}
 
-          {step === 2 && (
-            <Field title="Your server programs" hint="The Repack folder holds authserver.exe and worldserver.exe. This lets Aegis start and stop your server for you.">
-              <PathInput label="Repack folder" value={draft.repackPath} placeholder="C:\…\MOPPREMIUM\Repack" onChange={(v) => set("repackPath", v)} onDetect={async () => set("repackPath", (await autodetectRepackPath(draft.serverPath)) ?? draft.repackPath)} />
-            </Field>
-          )}
-
           {step === 3 && (
-            <Field title="Your WoW client" hint="The folder with Wow.exe. Aegis uses this to install handy add-ons (like the GM panel) straight into your game. Optional — you can skip it.">
-              <PathInput label="Client folder" value={draft.clientPath} placeholder="D:\Mists of Pandaria 5-4-8" onChange={(v) => set("clientPath", v)} onDetect={async () => set("clientPath", (await autodetectClientPath()) ?? draft.clientPath)} />
+            <Field title="Your WoW client" hint="The folder with Wow.exe. Aegis uses this to install handy add-ons (like the GM panel) into your game. Optional — you can skip it.">
+              <PathField
+                label="Client folder"
+                kind="client"
+                value={draft.clientPath}
+                placeholder="D:\Mists of Pandaria 5-4-8"
+                onChange={(v) => set("clientPath", v)}
+                onDetect={async () => set("clientPath", (await autodetectClientPath()) ?? draft.clientPath)}
+              />
             </Field>
           )}
 
@@ -151,8 +165,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div className="flex flex-col gap-3 text-sm text-slate-300">
               <div className="flex items-center gap-2 text-emerald-300"><CheckCircle2 className="h-5 w-5" /> <span className="font-medium">You're all set!</span></div>
               <p>Aegis is ready. The Status page shows everything at a glance, and you can manage your server, accounts and backups from the menu.</p>
-              <SummaryLine label="Database" value={draft.serverPath} />
               <SummaryLine label="Repack" value={draft.repackPath} />
+              <SummaryLine label="Database" value={draft.serverPath} />
               <SummaryLine label="Client" value={draft.clientPath} />
             </div>
           )}
@@ -180,18 +194,6 @@ function Field({ title, hint, children }: { title: string; hint: string; childre
       </div>
       {children}
     </div>
-  );
-}
-
-function PathInput({ label, value, placeholder, onChange, onDetect }: { label: string; value: string | null; placeholder: string; onChange: (v: string | null) => void; onDetect: () => void }) {
-  return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="text-slate-300">{label}</span>
-      <div className="flex gap-2">
-        <input className={inputCls} value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value || null)} />
-        <Button variant="outline" onClick={onDetect}><FolderSearch className="h-4 w-4" /> Detect</Button>
-      </div>
-    </label>
   );
 }
 

@@ -4,6 +4,7 @@ pub mod backup;
 pub mod health;
 pub mod logging;
 pub mod mysql;
+pub mod paths;
 pub mod ra;
 pub mod repack_conf;
 pub mod restore;

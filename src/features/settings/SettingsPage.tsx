@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
-import { FolderSearch, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { autodetectServerPath, getSettings, saveSettings } from "@/lib/ipc";
+import { PathField } from "@/components/PathField";
+import {
+  autodetectClientPath,
+  autodetectRepackPath,
+  autodetectServerPath,
+  getSettings,
+  saveSettings,
+} from "@/lib/ipc";
 import type { Settings } from "@/lib/types";
 
 /**
@@ -49,36 +56,33 @@ export function SettingsPage({ onSaved }: { onSaved: () => void }) {
           <CardTitle>Repack location</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Field label="_Server folder" hint="The folder that contains mysql\bin.">
-            <div className="flex gap-2">
-              <input
-                className={inputCls}
-                value={settings.serverPath ?? ""}
-                placeholder="e.g. C:\…\MOPPREMIUM\Database\_Server"
-                onChange={(e) => set("serverPath", e.target.value || null)}
-              />
-              <Button variant="outline" onClick={detect} disabled={busy}>
-                <FolderSearch className="h-4 w-4" />
-                Auto-detect
-              </Button>
-            </div>
-          </Field>
-          <Field label="Repack folder" hint="Holds authserver.exe and worldserver.exe — lets Aegis start/stop your server.">
-            <input
-              className={inputCls}
-              value={settings.repackPath ?? ""}
-              placeholder="e.g. C:\…\MOPPREMIUM\Repack"
-              onChange={(e) => set("repackPath", e.target.value || null)}
-            />
-          </Field>
-          <Field label="WoW client folder" hint="The folder with Wow.exe — used to install add-ons into your game.">
-            <input
-              className={inputCls}
-              value={settings.clientPath ?? ""}
-              placeholder="e.g. D:\Mists of Pandaria 5-4-8"
-              onChange={(e) => set("clientPath", e.target.value || null)}
-            />
-          </Field>
+          <PathField
+            label="Repack folder"
+            kind="repack"
+            value={settings.repackPath}
+            placeholder="e.g. C:\…\MOPPREMIUM\Repack"
+            hint="Holds authserver.exe and worldserver.exe — lets Aegis start/stop your server."
+            onChange={(v) => set("repackPath", v)}
+            onDetect={async () => set("repackPath", (await autodetectRepackPath(settings.serverPath)) ?? settings.repackPath)}
+          />
+          <PathField
+            label="_Server folder"
+            kind="server"
+            value={settings.serverPath}
+            placeholder="e.g. C:\…\MOPPREMIUM\Database\_Server"
+            hint="The folder that contains mysql\bin."
+            onChange={(v) => set("serverPath", v)}
+            onDetect={detect}
+          />
+          <PathField
+            label="WoW client folder"
+            kind="client"
+            value={settings.clientPath}
+            placeholder="e.g. D:\Mists of Pandaria 5-4-8"
+            hint="The folder with Wow.exe — used to install add-ons into your game."
+            onChange={(v) => set("clientPath", v)}
+            onDetect={async () => set("clientPath", (await autodetectClientPath()) ?? settings.clientPath)}
+          />
           <Field label="Backup folder" hint="Leave empty to use the default (in your AppData folder).">
             <input
               className={inputCls}

@@ -37,6 +37,11 @@ export function autodetectClientPath(): Promise<string | null> {
   return invoke<string | null>("autodetect_client_path");
 }
 
+/** Verify a folder is what we expect. kind: "server" | "repack" | "client". */
+export function validatePath(kind: "server" | "repack" | "client", path: string): Promise<boolean> {
+  return invoke<boolean>("validate_path", { kind, path });
+}
+
 /** Read the real DB connection (host/port/user/pass + DB names) from worldserver.conf. */
 export function readDbConfig(
   serverPath: string | null,

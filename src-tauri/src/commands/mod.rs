@@ -4,7 +4,7 @@
 use tauri::AppHandle;
 
 use crate::models::{AddonInfo, BackupFile, BackupResult, DbConnInfo, HealthReport, RestoreResult, ScheduleStatus, ServerStatus, Settings};
-use crate::services::{accounts, addons, backup, health, logging, repack_conf, restore, scheduler, server_control, settings_store};
+use crate::services::{accounts, addons, backup, health, logging, paths, repack_conf, restore, scheduler, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -31,6 +31,12 @@ pub fn autodetect_repack_path(server_path: Option<String>) -> Option<String> {
 #[tauri::command]
 pub fn autodetect_client_path() -> Option<String> {
     settings_store::autodetect_client_path()
+}
+
+/// Verify a folder really is what we expect. kind: "server" | "repack" | "client".
+#[tauri::command]
+pub fn validate_path(kind: String, path: String) -> bool {
+    paths::validate(&kind, &path)
 }
 
 /// Read the real DB host/port/user/password + DB names from worldserver.conf,
