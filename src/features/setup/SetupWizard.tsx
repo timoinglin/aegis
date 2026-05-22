@@ -6,6 +6,7 @@ import {
   autodetectRepackPath,
   autodetectServerPath,
   getSettings,
+  readDbConfig,
   runHealthChecks,
   saveSettings,
 } from "@/lib/ipc";
@@ -31,19 +32,40 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     void getSettings().then(setDraft);
   }, []);
 
-  // Auto-detect a folder when arriving at its step (only if still empty).
+  // Auto-detect each folder when arriving at its step, and once the draft loads.
+  // Keyed on `ready` (not `draft`) so typing in a field doesn't re-trigger detection.
+  const ready = draft != null;
   useEffect(() => {
     if (!draft) return;
-    if (step === 1 && !draft.serverPath) void autodetectServerPath().then((p) => p && set("serverPath", p));
+    if (step === 1) {
+      void (async () => {
+        let sp = draft.serverPath;
+        if (!sp) {
+          sp = await autodetectServerPath();
+          if (sp) set("serverPath", sp);
+        }
+        await fillFromConfig(sp, draft.repackPath);
+      })();
+    }
     if (step === 2 && !draft.repackPath) void autodetectRepackPath(draft.serverPath).then((p) => p && set("repackPath", p));
     if (step === 3 && !draft.clientPath) void autodetectClientPath().then((p) => p && set("clientPath", p));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, draft?.serverPath]);
+  }, [step, ready]);
 
   if (!draft) return null;
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setDraft((d) => (d ? { ...d, [key]: value } : d));
+
+  // Pull the real host/port/user/password straight from worldserver.conf, so a
+  // server with renamed databases or a changed password just works.
+  const fillFromConfig = async (serverPath: string | null, repackPath: string | null) => {
+    const cfg = await readDbConfig(serverPath, repackPath);
+    if (!cfg) return;
+    setDraft((d) =>
+      d ? { ...d, dbHost: cfg.host, dbPort: cfg.port, dbUser: cfg.user, dbPassword: cfg.password } : d
+    );
+  };
 
   const testConnection = async () => {
     setTesting(true);
@@ -94,7 +116,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           {step === 1 && (
             <Field
               title="Your database"
-              hint="The _Server folder is the one with mysql inside it. Aegis uses your repack's own MySQL — the defaults below usually just work."
+              hint="The _Server folder is the one with mysql inside it. Aegis reads your real database settings from your server's config automatically — even if you changed the defaults."
             >
               <PathInput label="_Server folder" value={draft.serverPath} placeholder="C:\…\MOPPREMIUM\Database\_Server" onChange={(v) => set("serverPath", v)} onDetect={async () => set("serverPath", (await autodetectServerPath()) ?? draft.serverPath)} />
               <div className="grid grid-cols-3 gap-2">
@@ -102,8 +124,11 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 <SmallField label="User"><input className={inputCls} value={draft.dbUser} onChange={(e) => set("dbUser", e.target.value)} /></SmallField>
                 <SmallField label="Password"><input className={inputCls} type="password" value={draft.dbPassword} onChange={(e) => set("dbPassword", e.target.value)} /></SmallField>
               </div>
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={testConnection} disabled={testing}>{testing ? "Testing…" : "Test connection"}</Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="outline" onClick={() => fillFromConfig(draft.serverPath, draft.repackPath)}>
+                  Read from server config
+                </Button>
+                <Button onClick={testConnection} disabled={testing}>{testing ? "Testing…" : "Test connection"}</Button>
                 {dbOk === true && <span className="flex items-center gap-1.5 text-sm text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Connected!</span>}
                 {dbOk === false && <span className="flex items-center gap-1.5 text-sm text-rose-300"><XCircle className="h-4 w-4" /> Couldn't connect — check the folder and password.</span>}
               </div>

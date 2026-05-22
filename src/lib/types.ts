@@ -53,6 +53,14 @@ export interface Settings {
   setupComplete: boolean;
 }
 
+export interface DbConnInfo {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  databases: string[];
+}
+
 export interface ServiceState {
   running: boolean;
   pid: number | null;

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { CheckCircle2, ServerCrash, UserPlus, ShieldHalf, KeyRound } from "lucide-react";
+import { CheckCircle2, UserPlus, ShieldHalf, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createAccount, setAccountPassword, setGmLevel } from "@/lib/ipc";
 import type { HealthReport } from "@/lib/types";
 import { GM_LEVELS } from "./gmLevels";
+import { RaSetupHelp } from "./RaSetupHelp";
 
 const inputCls =
   "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm outline-none focus:border-brand";
@@ -22,26 +23,7 @@ export function AccountsPage({ health }: { health: HealthReport | null }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {!raReady && raCheck && (
-        <Card className="border-amber-500/40">
-          <CardContent className="flex items-start gap-3 py-3">
-            <ServerCrash className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-            <div>
-              <p className="text-sm font-medium text-amber-300">
-                Account tasks need your server running
-              </p>
-              <p className="mt-0.5 text-xs text-slate-400">{raCheck.why}</p>
-              {raCheck.fix.length > 0 && (
-                <ol className="mt-2 list-inside list-decimal space-y-1 text-xs text-slate-300">
-                  {raCheck.fix.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {!raReady && <RaSetupHelp />}
 
       <CreateAccountCard disabled={!raReady} />
       <SetGmLevelCard disabled={!raReady} />

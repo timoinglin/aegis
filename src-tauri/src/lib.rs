@@ -14,6 +14,7 @@ pub fn run() {
             commands::autodetect_server_path,
             commands::autodetect_repack_path,
             commands::autodetect_client_path,
+            commands::read_db_config,
             commands::run_health_checks,
             commands::recheck,
             commands::server_status,

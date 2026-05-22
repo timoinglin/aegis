@@ -29,9 +29,12 @@ pub fn resolve_dir(app: &AppHandle, settings: &Settings) -> Result<PathBuf, Stri
 /// actually uses (worldserver.conf), so this adapts to Free (mop_*) vs Premium and
 /// any custom names. Falls back to probing for the standard game DBs.
 pub fn databases_to_backup(settings: &Settings) -> Vec<String> {
-    if let Some(dbs) = from_worldserver_conf(settings) {
-        if !dbs.is_empty() {
-            return dbs;
+    // Authoritative: the DB names worldserver.conf actually uses (handles renamed DBs).
+    if let Some(info) =
+        crate::services::repack_conf::read(settings.server_path.as_deref(), settings.repack_path.as_deref())
+    {
+        if !info.databases.is_empty() {
+            return info.databases;
         }
     }
     // Fallback: keep only the standard game DBs that actually exist.
@@ -42,38 +45,6 @@ pub fn databases_to_backup(settings: &Settings) -> Vec<String> {
         .filter(|db| present.contains(db))
         .map(String::from)
         .collect()
-}
-
-/// Parse the three *DatabaseInfo connection strings (host;port;user;pass;DBNAME)
-/// from worldserver.conf, which sits in the Repack folder beside _Server.
-fn from_worldserver_conf(settings: &Settings) -> Option<Vec<String>> {
-    // Prefer the explicit repack path; fall back to deriving it next to _Server.
-    let conf = match settings.repack_path.as_deref() {
-        Some(repack) => PathBuf::from(repack).join("worldserver.conf"),
-        None => Path::new(settings.server_path.as_deref()?)
-            .parent()? // ...\Database
-            .parent()? // ...\MOPPREMIUM
-            .join("Repack")
-            .join("worldserver.conf"),
-    };
-    let text = fs::read_to_string(conf).ok()?;
-
-    let mut dbs = Vec::new();
-    for key in ["LoginDatabaseInfo", "CharacterDatabaseInfo", "WorldDatabaseInfo"] {
-        if let Some(name) = text
-            .lines()
-            .find(|l| l.trim_start().starts_with(key))
-            .and_then(|l| l.split('"').nth(1)) // value inside quotes
-            .and_then(|v| v.split(';').nth(4)) // 5th field = db name
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-        {
-            if !dbs.contains(&name) {
-                dbs.push(name);
-            }
-        }
-    }
-    Some(dbs)
 }
 
 pub fn db_stats(settings: &Settings, db: &str) -> DbBackupInfo {

@@ -3,6 +3,7 @@ import type {
   AddonInfo,
   BackupFile,
   BackupResult,
+  DbConnInfo,
   HealthReport,
   RestoreResult,
   ServerStatus,
@@ -33,6 +34,14 @@ export function autodetectRepackPath(serverPath: string | null): Promise<string 
 /** Guess the WoW client folder. */
 export function autodetectClientPath(): Promise<string | null> {
   return invoke<string | null>("autodetect_client_path");
+}
+
+/** Read the real DB connection (host/port/user/pass + DB names) from worldserver.conf. */
+export function readDbConfig(
+  serverPath: string | null,
+  repackPath: string | null
+): Promise<DbConnInfo | null> {
+  return invoke<DbConnInfo | null>("read_db_config", { serverPath, repackPath });
 }
 
 // --- Server process control ---

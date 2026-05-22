@@ -3,8 +3,8 @@
 
 use tauri::AppHandle;
 
-use crate::models::{AddonInfo, BackupFile, BackupResult, HealthReport, RestoreResult, ServerStatus, Settings};
-use crate::services::{accounts, addons, backup, health, logging, restore, server_control, settings_store};
+use crate::models::{AddonInfo, BackupFile, BackupResult, DbConnInfo, HealthReport, RestoreResult, ServerStatus, Settings};
+use crate::services::{accounts, addons, backup, health, logging, repack_conf, restore, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -31,6 +31,13 @@ pub fn autodetect_repack_path(server_path: Option<String>) -> Option<String> {
 #[tauri::command]
 pub fn autodetect_client_path() -> Option<String> {
     settings_store::autodetect_client_path()
+}
+
+/// Read the real DB host/port/user/password + DB names from worldserver.conf,
+/// so changed defaults (renamed DBs, different password) are picked up automatically.
+#[tauri::command]
+pub fn read_db_config(server_path: Option<String>, repack_path: Option<String>) -> Option<DbConnInfo> {
+    repack_conf::read(server_path.as_deref(), repack_path.as_deref())
 }
 
 #[tauri::command]

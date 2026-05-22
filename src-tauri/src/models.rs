@@ -114,6 +114,18 @@ pub struct BackupResult {
     pub duration_secs: u64,
 }
 
+/// Database connection details read from the repack's worldserver.conf.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DbConnInfo {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub password: String,
+    /// The actual DB names (login, characters, world) the server uses.
+    pub databases: Vec<String>,
+}
+
 /// A managed add-on (e.g. the MoP_GM panel) and its install/update state.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
