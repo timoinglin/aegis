@@ -3,8 +3,8 @@
 
 use tauri::AppHandle;
 
-use crate::models::{BackupFile, BackupResult, HealthReport, RestoreResult, ServerStatus, Settings};
-use crate::services::{accounts, backup, health, restore, server_control, settings_store};
+use crate::models::{AddonInfo, BackupFile, BackupResult, HealthReport, RestoreResult, ServerStatus, Settings};
+use crate::services::{accounts, addons, backup, health, logging, restore, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -117,6 +117,34 @@ pub fn list_backups(app: AppHandle) -> Vec<BackupFile> {
         Ok(dir) => backup::list_backups(&dir),
         Err(_) => Vec::new(),
     }
+}
+
+// --- Add-ons ---
+
+#[tauri::command]
+pub async fn list_addons(app: AppHandle) -> Vec<AddonInfo> {
+    // Hits GitHub for latest versions, so off the main thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        addons::status(&settings)
+    })
+    .await
+    .unwrap_or_default()
+}
+
+#[tauri::command]
+pub async fn install_addon(app: AppHandle, id: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        let result = addons::install(&settings, &id);
+        match &result {
+            Ok(msg) => logging::log_op(&app, "INFO", "addon/install", &format!("{id}: {msg}"), &settings.secrets()),
+            Err(e) => logging::log_op(&app, "ERROR", "addon/install", &format!("{id}: {e}"), &settings.secrets()),
+        }
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 // --- Server process control ---

@@ -114,6 +114,19 @@ pub struct BackupResult {
     pub duration_secs: u64,
 }
 
+/// A managed add-on (e.g. the MoP_GM panel) and its install/update state.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddonInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub installed: bool,
+    pub installed_version: Option<String>,
+    pub latest_version: Option<String>,
+    pub update_available: bool,
+}
+
 /// Running state of one server process.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

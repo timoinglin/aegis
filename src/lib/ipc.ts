@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AddonInfo,
   BackupFile,
   BackupResult,
   HealthReport,
@@ -43,6 +44,18 @@ export function serverStatus(): Promise<ServerStatus> {
 /** action: "start" | "stop" | "restart" (per service) or "start_all". */
 export function serverAction(service: string, action: string): Promise<string> {
   return invoke<string>("server_action", { service, action });
+}
+
+// --- Add-ons ---
+
+/** Catalog with install/update state (checks GitHub for latest versions). */
+export function listAddons(): Promise<AddonInfo[]> {
+  return invoke<AddonInfo[]>("list_addons");
+}
+
+/** Download + install (or update) an add-on into the client's AddOns folder. */
+export function installAddon(id: string): Promise<string> {
+  return invoke<string>("install_addon", { id });
 }
 
 /** Run the full Health report (all connectivity checks + reserved slots). */

@@ -66,6 +66,16 @@ export interface ServerStatus {
   worldserver: ServiceState;
 }
 
+export interface AddonInfo {
+  id: string;
+  name: string;
+  description: string;
+  installed: boolean;
+  installedVersion: string | null;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+}
+
 export interface DbBackupInfo {
   name: string;
   tables: number;

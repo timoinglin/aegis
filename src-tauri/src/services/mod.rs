@@ -1,4 +1,5 @@
 pub mod accounts;
+pub mod addons;
 pub mod backup;
 pub mod health;
 pub mod logging;
