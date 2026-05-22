@@ -3,8 +3,8 @@
 
 use tauri::AppHandle;
 
-use crate::models::{AddonInfo, BackupFile, BackupResult, DbConnInfo, HealthReport, RestoreResult, ScheduleStatus, ServerStatus, Settings};
-use crate::services::{accounts, addons, backup, health, logging, paths, repack_conf, restore, scheduler, server_control, settings_store};
+use crate::models::{AddonInfo, BackupFile, BackupResult, CharacterInfo, DbConnInfo, HealthReport, RestoreResult, ScheduleStatus, ServerStatus, Settings};
+use crate::services::{accounts, addons, backup, characters, health, logging, paths, repack_conf, restore, scheduler, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -182,6 +182,54 @@ pub async fn install_addon(app: AppHandle, id: String) -> Result<String, String>
             Err(e) => logging::log_op(&app, "ERROR", "addon/install", &format!("{id}: {e}"), &settings.secrets()),
         }
         result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// --- Characters (.pdump via Remote Access) ---
+
+#[tauri::command]
+pub async fn list_characters(app: AppHandle) -> Vec<CharacterInfo> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        characters::list(&settings)
+    })
+    .await
+    .unwrap_or_default()
+}
+
+#[tauri::command]
+pub async fn backup_character(app: AppHandle, name_or_guid: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        characters::backup_one(&app, &settings, &name_or_guid)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn backup_all_characters(app: AppHandle) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        characters::backup_all(&app, &settings)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub fn list_character_backups(app: AppHandle) -> Vec<BackupFile> {
+    let settings = settings_store::load(&app);
+    characters::list_backups(&app, &settings)
+}
+
+#[tauri::command]
+pub async fn import_character(app: AppHandle, path: String, account: String, new_name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        characters::import(&app, &settings, &path, &account, &new_name)
     })
     .await
     .map_err(|e| e.to_string())?

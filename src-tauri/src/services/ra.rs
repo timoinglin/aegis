@@ -39,32 +39,41 @@ pub struct RaConfig {
 /// The worldserver does the actual work (e.g. SRP6 hashing for `.account create`),
 /// which is exactly why we go through RA instead of writing the DB directly.
 pub fn run_command(cfg: &RaConfig, command: &str) -> Result<String, String> {
+    let mut out = run_session(cfg, std::slice::from_ref(&command.to_string()))?;
+    Ok(out.pop().unwrap_or_default())
+}
+
+/// Run several commands over ONE authenticated connection (e.g. dumping many
+/// characters), returning each command's cleaned response in order.
+pub fn run_session(cfg: &RaConfig, commands: &[String]) -> Result<Vec<String>, String> {
     let addr = resolve(&cfg.host, cfg.port).ok_or("Could not resolve the Remote Access address")?;
     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(3))
         .map_err(|e| format!("connect failed: {e}"))?;
-    // Short read timeout so the loop can re-check the overall deadline.
+    // Short read timeout so the loop can re-check the per-step deadline.
     stream
         .set_read_timeout(Some(Duration::from_millis(400)))
         .map_err(|e| e.to_string())?;
 
-    let deadline = Instant::now() + Duration::from_secs(10);
+    let step = || Instant::now() + Duration::from_secs(15);
 
-    read_until(&mut stream, deadline, |b| lc_contains(b, "username"))?;
+    read_until(&mut stream, step(), |b| lc_contains(b, "username"))?;
     write_line(&mut stream, &cfg.user)?;
-
-    read_until(&mut stream, deadline, |b| lc_contains(b, "password"))?;
+    read_until(&mut stream, step(), |b| lc_contains(b, "password"))?;
     write_line(&mut stream, &cfg.password)?;
 
-    let auth = read_until(&mut stream, deadline, |b| is_prompt(b) || auth_failed(b))?;
+    let auth = read_until(&mut stream, step(), |b| is_prompt(b) || auth_failed(b))?;
     if auth_failed(&auth) {
         return Err("Remote Access login was rejected (check the RA user/password)".into());
     }
 
-    write_line(&mut stream, command)?;
-    let out = read_until(&mut stream, deadline, is_prompt)?;
+    let mut results = Vec::with_capacity(commands.len());
+    for command in commands {
+        write_line(&mut stream, command)?;
+        let out = read_until(&mut stream, step(), is_prompt)?;
+        results.push(clean_response(&out));
+    }
     let _ = write_line(&mut stream, "quit"); // best-effort clean close
-
-    Ok(clean_response(&out))
+    Ok(results)
 }
 
 // --- helpers ---------------------------------------------------------------

@@ -3,6 +3,7 @@ import type {
   AddonInfo,
   BackupFile,
   BackupResult,
+  CharacterInfo,
   DbConnInfo,
   HealthReport,
   RestoreResult,
@@ -59,6 +60,32 @@ export function serverStatus(): Promise<ServerStatus> {
 /** action: "start" | "stop" | "restart" (per service) or "start_all". */
 export function serverAction(service: string, action: string): Promise<string> {
   return invoke<string>("server_action", { service, action });
+}
+
+// --- Characters (.pdump via Remote Access) ---
+
+export function listCharacters(): Promise<CharacterInfo[]> {
+  return invoke<CharacterInfo[]>("list_characters");
+}
+
+/** Back up one character (by name or GUID). */
+export function backupCharacter(nameOrGuid: string): Promise<string> {
+  return invoke<string>("backup_character", { nameOrGuid });
+}
+
+/** Back up every character (one RA session). */
+export function backupAllCharacters(): Promise<string> {
+  return invoke<string>("backup_all_characters");
+}
+
+/** Character dump files available to import. */
+export function listCharacterBackups(): Promise<BackupFile[]> {
+  return invoke<BackupFile[]>("list_character_backups");
+}
+
+/** Import a character dump into an account (GUID auto-assigned). newName optional. */
+export function importCharacter(path: string, account: string, newName: string): Promise<string> {
+  return invoke<string>("import_character", { path, account, newName });
 }
 
 // --- Add-ons ---

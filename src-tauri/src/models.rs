@@ -140,6 +140,17 @@ pub struct ScheduleStatus {
     pub next_run: Option<String>,
 }
 
+/// A character row, for the Characters list.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CharacterInfo {
+    pub guid: u32,
+    pub name: String,
+    pub level: u16,
+    pub class_name: String,
+    pub account: u32,
+}
+
 /// Database connection details read from the repack's worldserver.conf.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

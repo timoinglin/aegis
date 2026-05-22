@@ -86,6 +86,14 @@ export interface ServerStatus {
   worldserver: ServiceState;
 }
 
+export interface CharacterInfo {
+  guid: number;
+  name: string;
+  level: number;
+  className: string;
+  account: number;
+}
+
 export interface AddonInfo {
   id: string;
   name: string;

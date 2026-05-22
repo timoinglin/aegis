@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod addons;
 pub mod backup;
+pub mod characters;
 pub mod health;
 pub mod logging;
 pub mod mysql;
