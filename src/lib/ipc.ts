@@ -101,6 +101,11 @@ export function listAddons(): Promise<AddonInfo[]> {
   return invoke<AddonInfo[]>("list_addons");
 }
 
+/** Base64 data-URI thumbnail for a bundled add-on (null if none). */
+export function addonThumbnail(id: string): Promise<string | null> {
+  return invoke<string | null>("addon_thumbnail", { id });
+}
+
 /** Download + install (or update) an add-on into the client's AddOns folder. */
 export function installAddon(id: string): Promise<string> {
   return invoke<string>("install_addon", { id });

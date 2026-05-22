@@ -185,6 +185,8 @@ pub struct AddonInfo {
     pub installed_version: Option<String>,
     pub latest_version: Option<String>,
     pub update_available: bool,
+    /// True if a bundled thumbnail image is available (fetch via addon_thumbnail).
+    pub has_thumbnail: bool,
 }
 
 /// Running state of one server process.

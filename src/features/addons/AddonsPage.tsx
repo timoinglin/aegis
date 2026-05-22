@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Puzzle, Download, CheckCircle2, ArrowUpCircle, AlertTriangle, FolderX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSettings, listAddons, installAddon } from "@/lib/ipc";
+import { getSettings, listAddons, installAddon, addonThumbnail } from "@/lib/ipc";
 import type { AddonInfo } from "@/lib/types";
 
 /**
@@ -106,8 +106,16 @@ function AddonRow({
   disabled: boolean;
   onInstall: () => void;
 }) {
+  const [thumb, setThumb] = useState<string | null>(null);
+  useEffect(() => {
+    if (addon.hasThumbnail) void addonThumbnail(addon.id).then(setThumb);
+  }, [addon.id, addon.hasThumbnail]);
+
   return (
     <div className="flex items-start gap-3 p-3">
+      {thumb && (
+        <img src={thumb} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+      )}
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{addon.name}</span>

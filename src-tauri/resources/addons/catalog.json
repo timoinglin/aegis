@@ -1,0 +1,20 @@
+{
+  "_comment": "Bundled add-on catalog. For each entry, place <zip> and <thumbnail> in this folder. 'folder' is the AddOns subfolder the zip installs (used to detect 'already installed') — fix it if a zip uses a different name. Delete entries you don't want to ship.",
+  "addons": [
+    { "id": "dbm",        "name": "Deadly Boss Mods (DBM)",   "description": "Boss-fight warnings, timers and alerts for dungeons and raids.",        "folder": "DBM-Core",    "zip": "dbm.zip",        "thumbnail": "dbm.png" },
+    { "id": "weakauras",  "name": "WeakAuras",                 "description": "Powerful, customizable visual alerts for buffs, cooldowns and more.",   "folder": "WeakAuras",   "zip": "weakauras.zip",  "thumbnail": "weakauras.png" },
+    { "id": "bagnon",     "name": "Bagnon",                    "description": "Combines all your bags into one tidy, searchable window.",              "folder": "Bagnon",      "zip": "bagnon.zip",     "thumbnail": "bagnon.png" },
+    { "id": "details",    "name": "Details! Damage Meter",     "description": "Detailed damage, healing and threat meters.",                           "folder": "Details",     "zip": "details.zip",    "thumbnail": "details.png" },
+    { "id": "omnicc",     "name": "OmniCC",                    "description": "Adds countdown text to anything with a cooldown.",                      "folder": "OmniCC",      "zip": "omnicc.zip",     "thumbnail": "omnicc.png" },
+    { "id": "recount",    "name": "Recount",                   "description": "Classic, lightweight damage and healing meter.",                        "folder": "Recount",     "zip": "recount.zip",    "thumbnail": "recount.png" },
+    { "id": "atlasloot",  "name": "AtlasLoot Enhanced",        "description": "Browse boss loot tables from anywhere.",                                "folder": "AtlasLoot",   "zip": "atlasloot.zip",  "thumbnail": "atlasloot.png" },
+    { "id": "bartender4", "name": "Bartender4",                "description": "Fully customizable action bars.",                                       "folder": "Bartender4",  "zip": "bartender4.zip", "thumbnail": "bartender4.png" },
+    { "id": "gatherer",   "name": "Gatherer",                  "description": "Tracks herb, ore and treasure locations on your map.",                  "folder": "Gatherer",    "zip": "gatherer.zip",   "thumbnail": "gatherer.png" },
+    { "id": "tellmewhen", "name": "TellMeWhen",                "description": "Icon alerts for cooldowns, buffs and procs.",                           "folder": "TellMeWhen",  "zip": "tellmewhen.zip", "thumbnail": "tellmewhen.png" },
+    { "id": "skada",      "name": "Skada Damage Meter",        "description": "Modular, low-memory damage and healing meter.",                         "folder": "Skada",       "zip": "skada.zip",      "thumbnail": "skada.png" },
+    { "id": "pawn",       "name": "Pawn",                      "description": "Shows an upgrade arrow and score on gear so you know what's better.",   "folder": "Pawn",        "zip": "pawn.zip",       "thumbnail": "pawn.png" },
+    { "id": "tidyplates", "name": "TidyPlates",                "description": "Cleaner, more informative enemy nameplates.",                           "folder": "TidyPlates",  "zip": "tidyplates.zip", "thumbnail": "tidyplates.png" },
+    { "id": "quartz",     "name": "Quartz",                    "description": "A sleek, modular cast bar.",                                            "folder": "Quartz",      "zip": "quartz.zip",     "thumbnail": "quartz.png" },
+    { "id": "postal",     "name": "Postal",                    "description": "Mailbox quality-of-life: open all, mass mail, and more.",               "folder": "Postal",      "zip": "postal.zip",     "thumbnail": "postal.png" }
+  ]
+}

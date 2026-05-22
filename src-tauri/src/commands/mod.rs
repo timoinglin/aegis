@@ -166,17 +166,22 @@ pub async fn list_addons(app: AppHandle) -> Vec<AddonInfo> {
     // Hits GitHub for latest versions, so off the main thread.
     tauri::async_runtime::spawn_blocking(move || {
         let settings = settings_store::load(&app);
-        addons::status(&settings)
+        addons::status(&app, &settings)
     })
     .await
     .unwrap_or_default()
 }
 
 #[tauri::command]
+pub fn addon_thumbnail(app: AppHandle, id: String) -> Option<String> {
+    addons::thumbnail(&app, &id)
+}
+
+#[tauri::command]
 pub async fn install_addon(app: AppHandle, id: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let settings = settings_store::load(&app);
-        let result = addons::install(&settings, &id);
+        let result = addons::install(&app, &settings, &id);
         match &result {
             Ok(msg) => logging::log_op(&app, "INFO", "addon/install", &format!("{id}: {msg}"), &settings.secrets()),
             Err(e) => logging::log_op(&app, "ERROR", "addon/install", &format!("{id}: {e}"), &settings.secrets()),

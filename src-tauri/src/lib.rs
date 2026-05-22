@@ -26,6 +26,7 @@ pub fn run() {
             commands::list_character_backups,
             commands::import_character,
             commands::list_addons,
+            commands::addon_thumbnail,
             commands::install_addon,
             commands::create_account,
             commands::set_gm_level,
