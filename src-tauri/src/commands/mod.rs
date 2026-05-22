@@ -4,7 +4,7 @@
 use tauri::AppHandle;
 
 use crate::models::{AddonInfo, BackupFile, BackupResult, CharacterInfo, DbConnInfo, HealthReport, MaintenanceResult, RestoreResult, ScheduleStatus, ServerStatus, Settings};
-use crate::services::{accounts, addons, backup, characters, health, logging, maintenance, paths, repack_conf, restore, scheduler, server_control, settings_store};
+use crate::services::{accounts, addons, backup, characters, health, logging, maintenance, paths, ra, repack_conf, restore, scheduler, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -37,6 +37,36 @@ pub fn autodetect_client_path() -> Option<String> {
 #[tauri::command]
 pub fn validate_path(kind: String, path: String) -> bool {
     paths::validate(&kind, &path)
+}
+
+/// Real Remote Access test: actually log in with the given credentials and run a
+/// harmless read-only command. Distinguishes unreachable / rejected / connected,
+/// so the wizard doesn't claim success when only the port is open.
+#[tauri::command]
+pub async fn test_remote_access(host: String, port: u16, user: String, password: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if user.trim().is_empty() || password.is_empty() {
+            return Err("Enter a Remote Access user and password to test the login.".to_string());
+        }
+        let cfg = ra::RaConfig { host, port, user, password };
+        match ra::run_command(&cfg, ".server info") {
+            Ok(_) => Ok("Connected — login works!".to_string()),
+            Err(e) => {
+                let l = e.to_lowercase();
+                Err(if l.contains("connect") || l.contains("resolve") {
+                    "Couldn't reach Remote Access. Is the worldserver running and Ra.Enable set to 1?".into()
+                } else if l.contains("rejected") || l.contains("login") {
+                    "Reachable, but the login was rejected — check the user and password.".into()
+                } else if l.contains("timed out") || l.contains("closed") {
+                    "Reachable, but the server didn't finish the login in time.".into()
+                } else {
+                    format!("Couldn't log in: {e}")
+                })
+            }
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Read the real DB host/port/user/password + DB names from worldserver.conf,

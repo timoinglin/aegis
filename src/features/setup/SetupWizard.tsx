@@ -10,6 +10,7 @@ import {
   readDbConfig,
   runHealthChecks,
   saveSettings,
+  testRemoteAccess,
 } from "@/lib/ipc";
 import type { Settings } from "@/lib/types";
 
@@ -29,7 +30,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [testing, setTesting] = useState(false);
   const [dbOk, setDbOk] = useState<boolean | null>(null);
   const [raTesting, setRaTesting] = useState(false);
-  const [raOk, setRaOk] = useState<boolean | null>(null);
+  const [raResult, setRaResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showRaHow, setShowRaHow] = useState(false);
 
   useEffect(() => {
@@ -84,13 +85,12 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
   const testRa = async () => {
     setRaTesting(true);
-    setRaOk(null);
+    setRaResult(null);
     try {
-      await saveSettings(draft);
-      const report = await runHealthChecks();
-      setRaOk(report.checks.find((c) => c.id === "ra")?.status === "ok");
-    } catch {
-      setRaOk(false);
+      const msg = await testRemoteAccess(draft.raHost, draft.raPort, draft.raUser, draft.raPassword);
+      setRaResult({ ok: true, msg });
+    } catch (e) {
+      setRaResult({ ok: false, msg: String(e) });
     } finally {
       setRaTesting(false);
     }
@@ -175,8 +175,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={testRa} disabled={raTesting}>{raTesting ? "Testing…" : "Test Remote Access"}</Button>
-                {raOk === true && <span className="flex items-center gap-1.5 text-sm text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Reachable!</span>}
-                {raOk === false && <span className="flex items-center gap-1.5 text-sm text-amber-300"><XCircle className="h-4 w-4" /> Not reachable yet — switch it on below, or skip for now.</span>}
+                {raResult?.ok && <span className="flex items-center gap-1.5 text-sm text-emerald-300"><CheckCircle2 className="h-4 w-4" /> {raResult.msg}</span>}
+                {raResult && !raResult.ok && <span className="flex items-start gap-1.5 text-sm text-amber-300"><XCircle className="mt-0.5 h-4 w-4 shrink-0" /> {raResult.msg}</span>}
               </div>
               <button type="button" onClick={() => setShowRaHow((v) => !v)} className="flex items-center gap-1.5 text-left text-xs text-brand-glow">
                 <ServerCog className="h-3.5 w-3.5" /> {showRaHow ? "Hide steps" : "New repack? Here's how to switch it on"}

@@ -53,9 +53,11 @@ export default function App() {
           <NavItem icon={<RotateCcw className="h-4 w-4" />} label="Restore" active={tab === "restore"} onClick={() => setTab("restore")} />
           <NavItem icon={<Wrench className="h-4 w-4" />} label="Maintenance" active={tab === "maintenance"} onClick={() => setTab("maintenance")} />
           <NavItem icon={<Puzzle className="h-4 w-4" />} label="Add-ons" active={tab === "addons"} onClick={() => setTab("addons")} />
-          <NavItem icon={<Boxes className="h-4 w-4" />} label="Other tools" active={tab === "tools"} onClick={() => setTab("tools")} />
-          <NavItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
-          <NavItem icon={<Info className="h-4 w-4" />} label="About" active={tab === "about"} onClick={() => setTab("about")} />
+          <div className="mt-auto flex flex-col gap-1 border-t border-slate-800 pt-2">
+            <NavItem icon={<Boxes className="h-4 w-4" />} label="Other tools" active={tab === "tools"} onClick={() => setTab("tools")} />
+            <NavItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
+            <NavItem icon={<Info className="h-4 w-4" />} label="About" active={tab === "about"} onClick={() => setTab("about")} />
+          </div>
         </nav>
         <main className="flex-1 overflow-auto p-5">
           {tab === "status" && <StatusCard report={report} loading={loading} onRecheck={recheck} />}

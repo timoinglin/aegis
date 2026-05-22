@@ -44,6 +44,11 @@ export function validatePath(kind: "server" | "repack" | "client", path: string)
   return invoke<boolean>("validate_path", { kind, path });
 }
 
+/** Actually log in to Remote Access and run a harmless command. */
+export function testRemoteAccess(host: string, port: number, user: string, password: string): Promise<string> {
+  return invoke<string>("test_remote_access", { host, port, user, password });
+}
+
 /** Read the real DB connection (host/port/user/pass + DB names) from worldserver.conf. */
 export function readDbConfig(
   serverPath: string | null,

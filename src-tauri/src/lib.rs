@@ -16,6 +16,7 @@ pub fn run() {
             commands::autodetect_client_path,
             commands::read_db_config,
             commands::validate_path,
+            commands::test_remote_access,
             commands::run_health_checks,
             commands::recheck,
             commands::server_status,
