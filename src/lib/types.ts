@@ -39,12 +39,31 @@ export interface Settings {
   dbPassword: string;
   /** The repack's "_Server" folder (contains mysql\bin). */
   serverPath: string | null;
+  /** The "Repack" folder (authserver.exe / worldserver.exe / *.conf). */
+  repackPath: string | null;
+  /** The WoW client folder (contains Wow.exe + Interface\AddOns). */
+  clientPath: string | null;
   /** Where backups are written. null = default (%APPDATA%\Aegis\backups). */
   backupDir: string | null;
   raHost: string;
   raPort: number;
   raUser: string;
   raPassword: string;
+  /** False until the first-run setup wizard has been completed. */
+  setupComplete: boolean;
+}
+
+export interface ServiceState {
+  running: boolean;
+  pid: number | null;
+  /** True if Aegis knows where to launch it. */
+  launchable: boolean;
+}
+
+export interface ServerStatus {
+  mysql: ServiceState;
+  authserver: ServiceState;
+  worldserver: ServiceState;
 }
 
 export interface DbBackupInfo {

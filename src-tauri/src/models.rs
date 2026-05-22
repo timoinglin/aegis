@@ -38,19 +38,28 @@ pub struct HealthReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// Container-level default: any field missing from an older settings.json falls back
+// to its default instead of failing the whole parse. Future-proofs adding fields.
+#[serde(rename_all = "camelCase", default)]
 pub struct Settings {
     pub db_host: String,
     pub db_port: u16,
     pub db_user: String,
     pub db_password: String,
+    /// The repack's "_Server" folder (contains mysql\bin + MySQL.bat).
     pub server_path: Option<String>,
+    /// The "Repack" folder (authserver.exe / worldserver.exe / *.conf).
+    pub repack_path: Option<String>,
+    /// The WoW client folder (contains Wow.exe + Interface\AddOns).
+    pub client_path: Option<String>,
     /// Where backups are written. None = the default (%APPDATA%\Aegis\backups).
     pub backup_dir: Option<String>,
     pub ra_host: String,
     pub ra_port: u16,
     pub ra_user: String,
     pub ra_password: String,
+    /// False until the first-run setup wizard has been completed.
+    pub setup_complete: bool,
 }
 
 impl Default for Settings {
@@ -63,11 +72,14 @@ impl Default for Settings {
             db_user: "root".into(),
             db_password: "ascent".into(),
             server_path: None,
+            repack_path: None,
+            client_path: None,
             backup_dir: None,
             ra_host: "127.0.0.1".into(),
             ra_port: 3443,
             ra_user: String::new(),
             ra_password: String::new(),
+            setup_complete: false,
         }
     }
 }
@@ -100,6 +112,24 @@ pub struct BackupResult {
     pub completed: bool,
     pub databases: Vec<DbBackupInfo>,
     pub duration_secs: u64,
+}
+
+/// Running state of one server process.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceState {
+    pub running: bool,
+    pub pid: Option<u32>,
+    /// True if Aegis knows where to launch it (path configured + exe present).
+    pub launchable: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerStatus {
+    pub mysql: ServiceState,
+    pub authserver: ServiceState,
+    pub worldserver: ServiceState,
 }
 
 /// A backup file Aegis can offer to restore.

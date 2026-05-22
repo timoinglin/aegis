@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Activity, HardDriveDownload, Info, RotateCcw, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Activity, HardDriveDownload, Info, Rocket, RotateCcw, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getSettings } from "@/lib/ipc";
 import { useHealth } from "@/features/health/useHealth";
 import { HealthBanner } from "@/features/health/HealthBanner";
 import { StatusCard } from "@/features/health/StatusCard";
@@ -9,12 +10,30 @@ import { AccountsPage } from "@/features/accounts/AccountsPage";
 import { BackupPage } from "@/features/backup/BackupPage";
 import { RestorePage } from "@/features/restore/RestorePage";
 import { AboutPage } from "@/features/about/AboutPage";
+import { ServerPage } from "@/features/server/ServerPage";
+import { SetupWizard } from "@/features/setup/SetupWizard";
 
-type Tab = "status" | "accounts" | "backup" | "restore" | "settings" | "about";
+type Tab = "status" | "server" | "accounts" | "backup" | "restore" | "settings" | "about";
 
 export default function App() {
   const { report, loading, refresh, recheck } = useHealth();
   const [tab, setTab] = useState<Tab>("status");
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void getSettings().then((s) => setNeedsSetup(!s.setupComplete));
+  }, []);
+
+  if (needsSetup) {
+    return (
+      <SetupWizard
+        onComplete={() => {
+          setNeedsSetup(false);
+          void refresh();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -23,6 +42,7 @@ export default function App() {
         <nav className="flex w-48 shrink-0 flex-col gap-1 border-r border-slate-800 bg-slate-900/40 p-3">
           <Brand />
           <NavItem icon={<Activity className="h-4 w-4" />} label="Status" active={tab === "status"} onClick={() => setTab("status")} />
+          <NavItem icon={<Rocket className="h-4 w-4" />} label="Server" active={tab === "server"} onClick={() => setTab("server")} />
           <NavItem icon={<Users className="h-4 w-4" />} label="Accounts" active={tab === "accounts"} onClick={() => setTab("accounts")} />
           <NavItem icon={<HardDriveDownload className="h-4 w-4" />} label="Backup" active={tab === "backup"} onClick={() => setTab("backup")} />
           <NavItem icon={<RotateCcw className="h-4 w-4" />} label="Restore" active={tab === "restore"} onClick={() => setTab("restore")} />
@@ -31,6 +51,7 @@ export default function App() {
         </nav>
         <main className="flex-1 overflow-auto p-5">
           {tab === "status" && <StatusCard report={report} loading={loading} onRecheck={recheck} />}
+          {tab === "server" && <ServerPage onChanged={refresh} />}
           {tab === "accounts" && <AccountsPage health={report} />}
           {tab === "backup" && <BackupPage health={report} />}
           {tab === "restore" && <RestorePage health={report} />}

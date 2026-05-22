@@ -47,12 +47,15 @@ pub fn databases_to_backup(settings: &Settings) -> Vec<String> {
 /// Parse the three *DatabaseInfo connection strings (host;port;user;pass;DBNAME)
 /// from worldserver.conf, which sits in the Repack folder beside _Server.
 fn from_worldserver_conf(settings: &Settings) -> Option<Vec<String>> {
-    let server_path = settings.server_path.as_deref()?;
-    let conf = Path::new(server_path)
-        .parent()? // ...\Database
-        .parent()? // ...\MOPPREMIUM
-        .join("Repack")
-        .join("worldserver.conf");
+    // Prefer the explicit repack path; fall back to deriving it next to _Server.
+    let conf = match settings.repack_path.as_deref() {
+        Some(repack) => PathBuf::from(repack).join("worldserver.conf"),
+        None => Path::new(settings.server_path.as_deref()?)
+            .parent()? // ...\Database
+            .parent()? // ...\MOPPREMIUM
+            .join("Repack")
+            .join("worldserver.conf"),
+    };
     let text = fs::read_to_string(conf).ok()?;
 
     let mut dbs = Vec::new();

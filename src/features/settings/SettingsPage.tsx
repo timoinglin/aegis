@@ -63,6 +63,22 @@ export function SettingsPage({ onSaved }: { onSaved: () => void }) {
               </Button>
             </div>
           </Field>
+          <Field label="Repack folder" hint="Holds authserver.exe and worldserver.exe — lets Aegis start/stop your server.">
+            <input
+              className={inputCls}
+              value={settings.repackPath ?? ""}
+              placeholder="e.g. C:\…\MOPPREMIUM\Repack"
+              onChange={(e) => set("repackPath", e.target.value || null)}
+            />
+          </Field>
+          <Field label="WoW client folder" hint="The folder with Wow.exe — used to install add-ons into your game.">
+            <input
+              className={inputCls}
+              value={settings.clientPath ?? ""}
+              placeholder="e.g. D:\Mists of Pandaria 5-4-8"
+              onChange={(e) => set("clientPath", e.target.value || null)}
+            />
+          </Field>
           <Field label="Backup folder" hint="Leave empty to use the default (in your AppData folder).">
             <input
               className={inputCls}

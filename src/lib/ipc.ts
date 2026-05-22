@@ -1,5 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { BackupFile, BackupResult, HealthReport, RestoreResult, Settings } from "./types";
+import type {
+  BackupFile,
+  BackupResult,
+  HealthReport,
+  RestoreResult,
+  ServerStatus,
+  Settings,
+} from "./types";
 
 // Thin, typed wrappers over the Rust #[tauri::command] surface.
 // Components call these — never invoke() directly.
@@ -15,6 +22,27 @@ export function saveSettings(settings: Settings): Promise<Settings> {
 /** Probe common install locations for the repack's "_Server" folder. */
 export function autodetectServerPath(): Promise<string | null> {
   return invoke<string | null>("autodetect_server_path");
+}
+
+/** Guess the "Repack" folder (optionally using the known _Server path). */
+export function autodetectRepackPath(serverPath: string | null): Promise<string | null> {
+  return invoke<string | null>("autodetect_repack_path", { serverPath });
+}
+
+/** Guess the WoW client folder. */
+export function autodetectClientPath(): Promise<string | null> {
+  return invoke<string | null>("autodetect_client_path");
+}
+
+// --- Server process control ---
+
+export function serverStatus(): Promise<ServerStatus> {
+  return invoke<ServerStatus>("server_status");
+}
+
+/** action: "start" | "stop" | "restart" (per service) or "start_all". */
+export function serverAction(service: string, action: string): Promise<string> {
+  return invoke<string>("server_action", { service, action });
 }
 
 /** Run the full Health report (all connectivity checks + reserved slots). */

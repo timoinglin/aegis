@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
@@ -54,6 +54,49 @@ pub fn autodetect_server_path() -> Option<String> {
         .into_iter()
         .find(|p| crate::services::mysql::has_bins(p))
         .map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Best-effort guess for the "Repack" folder (authserver.exe / worldserver.exe).
+/// Usually sits beside the `_Server` folder under the install root.
+pub fn autodetect_repack_path(server_path: Option<&str>) -> Option<String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(sp) = server_path {
+        // ...\Database\_Server -> ...\MOPPREMIUM\Repack
+        if let Some(root) = Path::new(sp).parent().and_then(Path::parent) {
+            candidates.push(root.join("Repack"));
+        }
+    }
+    for drive in ["C:", "D:", "E:"] {
+        candidates.push(PathBuf::from(format!("{drive}\\mop_repack\\MOPPREMIUM\\Repack")));
+        candidates.push(PathBuf::from(format!("{drive}\\MOPPREMIUM\\Repack")));
+    }
+    candidates
+        .into_iter()
+        .find(|p| p.join("worldserver.exe").is_file())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Best-effort guess for the WoW client folder (contains Wow.exe). Scans drive
+/// roots for a folder whose name looks like a MoP client.
+pub fn autodetect_client_path() -> Option<String> {
+    let looks_like_client = |name: &str| {
+        let n = name.to_lowercase();
+        n.contains("pandaria") || n.contains("mists") || n.contains("5.4.8") || n.contains("548")
+    };
+    for drive in ["C:", "D:", "E:", "F:"] {
+        let Ok(entries) = fs::read_dir(format!("{drive}\\")) else { continue };
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_dir() {
+                if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
+                    if looks_like_client(name) && p.join("Wow.exe").is_file() {
+                        return Some(p.to_string_lossy().into_owned());
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]

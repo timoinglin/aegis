@@ -3,8 +3,9 @@
 
 use tauri::AppHandle;
 
-use crate::models::{BackupFile, BackupResult, HealthReport, RestoreResult, Settings};
-use crate::services::{accounts, backup, health, restore, settings_store};
+use crate::models::{BackupFile, BackupResult, HealthReport, RestoreResult, ServerStatus, Settings};
+use crate::services::{accounts, backup, health, restore, server_control, settings_store};
+use crate::services::server_control::Service;
 
 #[tauri::command]
 pub fn get_settings(app: AppHandle) -> Settings {
@@ -20,6 +21,16 @@ pub fn save_settings(app: AppHandle, settings: Settings) -> Result<Settings, Str
 #[tauri::command]
 pub fn autodetect_server_path() -> Option<String> {
     settings_store::autodetect_server_path()
+}
+
+#[tauri::command]
+pub fn autodetect_repack_path(server_path: Option<String>) -> Option<String> {
+    settings_store::autodetect_repack_path(server_path.as_deref())
+}
+
+#[tauri::command]
+pub fn autodetect_client_path() -> Option<String> {
+    settings_store::autodetect_client_path()
 }
 
 #[tauri::command]
@@ -106,6 +117,37 @@ pub fn list_backups(app: AppHandle) -> Vec<BackupFile> {
         Ok(dir) => backup::list_backups(&dir),
         Err(_) => Vec::new(),
     }
+}
+
+// --- Server process control ---
+
+#[tauri::command]
+pub fn server_status(app: AppHandle) -> ServerStatus {
+    let settings = settings_store::load(&app);
+    server_control::status(&settings)
+}
+
+#[tauri::command]
+pub async fn server_action(app: AppHandle, service: String, action: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        if action == "start_all" {
+            return server_control::start_all(&settings);
+        }
+        let svc = Service::parse(&service)?;
+        let result = match action.as_str() {
+            "start" => server_control::start(&settings, svc),
+            "stop" => server_control::stop(&settings, svc),
+            "restart" => server_control::restart(&settings, svc),
+            other => Err(format!("Unknown action: {other}")),
+        };
+        if let Ok(msg) = &result {
+            crate::services::logging::log_op(&app, "INFO", "server", &format!("{action} {service}: {msg}"), &settings.secrets());
+        }
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Restore a backup file. Destructive — takes an automatic safety backup first,
