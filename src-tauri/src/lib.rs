@@ -29,6 +29,7 @@ pub fn run() {
             commands::list_addons,
             commands::addon_thumbnail,
             commands::install_addon,
+            commands::uninstall_addon,
             commands::create_account,
             commands::set_gm_level,
             commands::set_account_password,

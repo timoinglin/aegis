@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Puzzle, Download, CheckCircle2, ArrowUpCircle, AlertTriangle, FolderX } from "lucide-react";
+import { Puzzle, Download, CheckCircle2, ArrowUpCircle, AlertTriangle, FolderX, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSettings, listAddons, installAddon, addonThumbnail } from "@/lib/ipc";
+import { getSettings, listAddons, installAddon, uninstallAddon, addonThumbnail } from "@/lib/ipc";
 import type { AddonInfo } from "@/lib/types";
 
 /**
@@ -32,6 +32,20 @@ export function AddonsPage() {
     setError(null);
     try {
       setMessage(await installAddon(id));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(null);
+      await refresh();
+    }
+  };
+
+  const remove = async (id: string) => {
+    setBusy(id);
+    setMessage(null);
+    setError(null);
+    try {
+      setMessage(await uninstallAddon(id));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -85,7 +99,7 @@ export function AddonsPage() {
           ) : (
             <div className="flex flex-col divide-y divide-slate-800 rounded-lg border border-slate-800">
               {addons.map((a) => (
-                <AddonRow key={a.id} addon={a} busy={busy === a.id} disabled={!clientSet || !!busy} onInstall={() => install(a.id)} />
+                <AddonRow key={a.id} addon={a} busy={busy === a.id} disabled={!clientSet || !!busy} onInstall={() => install(a.id)} onRemove={() => remove(a.id)} />
               ))}
             </div>
           )}
@@ -100,11 +114,13 @@ function AddonRow({
   busy,
   disabled,
   onInstall,
+  onRemove,
 }: {
   addon: AddonInfo;
   busy: boolean;
   disabled: boolean;
   onInstall: () => void;
+  onRemove: () => void;
 }) {
   const [thumb, setThumb] = useState<string | null>(null);
   useEffect(() => {
@@ -137,15 +153,25 @@ function AddonRow({
           <p className="mt-1 text-xs text-brand-glow">Recommended — you don't have this yet.</p>
         )}
       </div>
-      <div className="shrink-0">
-        {addon.installed && !addon.updateAvailable ? (
-          <Button variant="ghost" size="sm" disabled>
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Up to date
-          </Button>
-        ) : (
+      <div className="flex shrink-0 items-center gap-2">
+        {addon.installed && !addon.updateAvailable && (
+          <span className="flex items-center gap-1 text-xs text-emerald-300">
+            <CheckCircle2 className="h-3.5 w-3.5" /> Up to date
+          </span>
+        )}
+        {addon.updateAvailable && (
           <Button size="sm" disabled={disabled || busy} onClick={onInstall}>
-            {addon.updateAvailable ? <ArrowUpCircle className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-            {busy ? "Working…" : addon.updateAvailable ? "Update" : "Install"}
+            <ArrowUpCircle className="h-3.5 w-3.5" /> {busy ? "Working…" : "Update"}
+          </Button>
+        )}
+        {!addon.installed && (
+          <Button size="sm" disabled={disabled || busy} onClick={onInstall}>
+            <Download className="h-3.5 w-3.5" /> {busy ? "Working…" : "Install"}
+          </Button>
+        )}
+        {addon.installed && (
+          <Button variant="ghost" size="sm" disabled={disabled || busy} onClick={onRemove} title="Remove this add-on">
+            <Trash2 className="h-3.5 w-3.5" /> Remove
           </Button>
         )}
       </div>

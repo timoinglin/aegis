@@ -208,6 +208,21 @@ pub fn addon_thumbnail(app: AppHandle, id: String) -> Option<String> {
 }
 
 #[tauri::command]
+pub async fn uninstall_addon(app: AppHandle, id: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        let result = addons::uninstall(&app, &settings, &id);
+        match &result {
+            Ok(msg) => logging::log_op(&app, "INFO", "addon/uninstall", &format!("{id}: {msg}"), &settings.secrets()),
+            Err(e) => logging::log_op(&app, "ERROR", "addon/uninstall", &format!("{id}: {e}"), &settings.secrets()),
+        }
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub async fn install_addon(app: AppHandle, id: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let settings = settings_store::load(&app);

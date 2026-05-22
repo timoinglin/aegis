@@ -157,6 +157,56 @@ pub fn thumbnail(app: &AppHandle, id: &str) -> Option<String> {
     Some(format!("data:image/png;base64,{b64}"))
 }
 
+/// Remove an installed add-on from the client's AddOns folder. For bundled
+/// add-ons we inspect the zip and clean ALL folders it would have installed
+/// (e.g. DBM extracts DBM-Core + 14 sub-modules — we remove all of them).
+pub fn uninstall(app: &AppHandle, settings: &Settings, id: &str) -> Result<String, String> {
+    let addons = addons_dir(settings).ok_or("Set your WoW client folder in Settings first.")?;
+
+    if let Some(e) = GITHUB.iter().find(|x| x.id == id) {
+        let target = addons.join(e.folder);
+        if target.is_dir() {
+            fs::remove_dir_all(&target).map_err(|err| format!("Couldn't remove: {err}"))?;
+        }
+        return Ok(format!("Removed {}.", e.name));
+    }
+
+    let entry = load_catalog(app).into_iter().find(|x| x.id == id).ok_or("Unknown add-on.")?;
+    let zip_path = bundled_dir(app)
+        .ok_or("Bundled folder not found.")?
+        .join(&entry.zip);
+
+    // Find every top-level folder the zip would install, then remove each one.
+    let file = File::open(&zip_path).map_err(|e| e.to_string())?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Bad zip: {e}"))?;
+    let mut tops = std::collections::BTreeSet::new();
+    for i in 0..archive.len() {
+        if let Ok(z) = archive.by_index(i) {
+            if let Some(top) = z.name().split('/').next() {
+                if !top.is_empty() && !top.starts_with('.') {
+                    tops.insert(top.to_string());
+                }
+            }
+        }
+    }
+
+    let mut removed = 0usize;
+    for top in &tops {
+        let p = addons.join(top);
+        if p.is_dir() && fs::remove_dir_all(&p).is_ok() {
+            removed += 1;
+        }
+    }
+    if removed == 0 {
+        return Err(format!("{} doesn't seem to be installed.", entry.name));
+    }
+    Ok(format!(
+        "Removed {} ({removed} folder{} cleaned).",
+        entry.name,
+        if removed == 1 { "" } else { "s" }
+    ))
+}
+
 pub fn install(app: &AppHandle, settings: &Settings, id: &str) -> Result<String, String> {
     if GITHUB.iter().any(|e| e.id == id) {
         return install_github(settings, id);

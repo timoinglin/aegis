@@ -116,6 +116,11 @@ export function installAddon(id: string): Promise<string> {
   return invoke<string>("install_addon", { id });
 }
 
+/** Remove an installed add-on (all of its folders) from the client's AddOns. */
+export function uninstallAddon(id: string): Promise<string> {
+  return invoke<string>("uninstall_addon", { id });
+}
+
 /** Run the full Health report (all connectivity checks + reserved slots). */
 export function runHealthChecks(): Promise<HealthReport> {
   return invoke<HealthReport>("run_health_checks");
