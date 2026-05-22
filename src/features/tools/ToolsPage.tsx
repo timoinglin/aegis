@@ -46,7 +46,7 @@ export function ToolsPage() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-slate-300">
-        A few other free tools I've made for MoP repack owners — grab whatever's useful. 💛
+        Here are other useful tools for running your MoP server.
       </p>
 
       {TOOLS.map((t) => (

@@ -49,7 +49,7 @@ export default function App() {
           <NavItem icon={<HardDriveDownload className="h-4 w-4" />} label="Backup" active={tab === "backup"} onClick={() => setTab("backup")} />
           <NavItem icon={<RotateCcw className="h-4 w-4" />} label="Restore" active={tab === "restore"} onClick={() => setTab("restore")} />
           <NavItem icon={<Puzzle className="h-4 w-4" />} label="Add-ons" active={tab === "addons"} onClick={() => setTab("addons")} />
-          <NavItem icon={<Boxes className="h-4 w-4" />} label="My Tools" active={tab === "tools"} onClick={() => setTab("tools")} />
+          <NavItem icon={<Boxes className="h-4 w-4" />} label="Other tools" active={tab === "tools"} onClick={() => setTab("tools")} />
           <NavItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" active={tab === "settings"} onClick={() => setTab("settings")} />
           <NavItem icon={<Info className="h-4 w-4" />} label="About" active={tab === "about"} onClick={() => setTab("about")} />
         </nav>
