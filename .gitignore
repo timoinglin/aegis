@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Frontend build
+dist/
+*.tsbuildinfo
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Note: src-tauri/icons/* ARE committed (placeholder set) so the repo builds
+# out of the box. Regenerate with `npx tauri icon <art.png>` when the final logo lands.
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local working art (the non-final logo lives at repo root during dev)
+/aegis_logo.png
