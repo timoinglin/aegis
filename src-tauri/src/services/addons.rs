@@ -18,15 +18,17 @@ struct GithubEntry {
     folder: &'static str,
     toc: &'static str,
     repo: &'static str,
+    image_url: &'static str,
 }
 
 const GITHUB: &[GithubEntry] = &[GithubEntry {
     id: "mop_gm",
     name: "MoP_GM — GM Panel",
-    description: "A clean in-game panel for the most-used GM commands (spawn, teleport, items, cheats). Made by Kneuma.",
+    description: "A clean in-game panel for the most-used GM commands (spawn, teleport, items, cheats). Made by Kneuma — recommended for any GM.",
     folder: "MoP_GM",
     toc: "MoP_GM.toc",
     repo: "timoinglin/MoP_GM",
+    image_url: "https://raw.githubusercontent.com/timoinglin/MoP_GM/main/screenshots/guild.png",
 }];
 
 // --- Bundled add-ons (shipped with Aegis; defined in resources/addons/catalog.json) ---
@@ -117,6 +119,8 @@ pub fn status(app: &AppHandle, settings: &Settings) -> Vec<AddonInfo> {
             latest_version: latest,
             update_available,
             has_thumbnail: false,
+            featured: true,
+            image_url: Some(e.image_url.into()),
         });
     }
 
@@ -138,6 +142,8 @@ pub fn status(app: &AppHandle, settings: &Settings) -> Vec<AddonInfo> {
             latest_version: None,
             update_available: false,
             has_thumbnail,
+            featured: false,
+            image_url: None,
         });
     }
     out

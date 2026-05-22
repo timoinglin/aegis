@@ -187,6 +187,10 @@ pub struct AddonInfo {
     pub update_available: bool,
     /// True if a bundled thumbnail image is available (fetch via addon_thumbnail).
     pub has_thumbnail: bool,
+    /// Highlighted at the top of the list (e.g. our own GM panel).
+    pub featured: bool,
+    /// Optional remote image URL to show (used by featured add-ons).
+    pub image_url: Option<String>,
 }
 
 /// Running state of one server process.

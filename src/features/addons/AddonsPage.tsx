@@ -108,21 +108,32 @@ function AddonRow({
 }) {
   const [thumb, setThumb] = useState<string | null>(null);
   useEffect(() => {
-    if (addon.hasThumbnail) void addonThumbnail(addon.id).then(setThumb);
-  }, [addon.id, addon.hasThumbnail]);
+    if (!addon.imageUrl && addon.hasThumbnail) void addonThumbnail(addon.id).then(setThumb);
+  }, [addon.id, addon.hasThumbnail, addon.imageUrl]);
+
+  const image = addon.imageUrl ?? thumb;
 
   return (
-    <div className="flex items-start gap-3 p-3">
-      {thumb && (
-        <img src={thumb} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+    <div className={`flex items-start gap-3 p-3 ${addon.featured ? "border-l-2 border-brand bg-brand/5" : ""}`}>
+      {image && (
+        <img
+          src={image}
+          alt=""
+          className={`${addon.featured ? "h-16 w-28" : "h-12 w-12"} shrink-0 rounded-md object-cover`}
+        />
       )}
       <div className="flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{addon.name}</span>
+          {addon.featured && (
+            <span className="rounded-full bg-brand/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-glow">
+              Recommended
+            </span>
+          )}
           <Status addon={addon} />
         </div>
         <p className="mt-0.5 text-xs text-slate-400">{addon.description}</p>
-        {!addon.installed && !disabled && (
+        {!addon.installed && !addon.featured && !disabled && (
           <p className="mt-1 text-xs text-brand-glow">Recommended — you don't have this yet.</p>
         )}
       </div>

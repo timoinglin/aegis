@@ -110,6 +110,8 @@ export interface AddonInfo {
   latestVersion: string | null;
   updateAvailable: boolean;
   hasThumbnail: boolean;
+  featured: boolean;
+  imageUrl: string | null;
 }
 
 export interface DbBackupInfo {
