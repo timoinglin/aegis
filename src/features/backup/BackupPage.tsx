@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { backupDir, createBackup } from "@/lib/ipc";
 import type { BackupResult, HealthReport } from "@/lib/types";
+import { ScheduleCard } from "./ScheduleCard";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -92,6 +93,8 @@ export function BackupPage({ health }: { health: HealthReport | null }) {
       </Card>
 
       {result && <BackupSummary result={result} />}
+
+      <ScheduleCard />
     </div>
   );
 }

@@ -60,6 +60,16 @@ pub struct Settings {
     pub ra_password: String,
     /// False until the first-run setup wizard has been completed.
     pub setup_complete: bool,
+    // --- Automatic backup schedule (Windows Task Scheduler) ---
+    pub backup_schedule_enabled: bool,
+    /// "daily" or "weekly".
+    pub backup_frequency: String,
+    /// "HH:MM" 24-hour local time.
+    pub backup_time: String,
+    /// Day for weekly schedules: MON/TUE/WED/THU/FRI/SAT/SUN.
+    pub backup_weekday: String,
+    /// How many recent backups to keep (older ones are pruned). 0 = keep all.
+    pub backup_keep: u32,
 }
 
 impl Default for Settings {
@@ -80,6 +90,11 @@ impl Default for Settings {
             ra_user: String::new(),
             ra_password: String::new(),
             setup_complete: false,
+            backup_schedule_enabled: false,
+            backup_frequency: "daily".into(),
+            backup_time: "03:00".into(),
+            backup_weekday: "SUN".into(),
+            backup_keep: 7,
         }
     }
 }
@@ -112,6 +127,17 @@ pub struct BackupResult {
     pub completed: bool,
     pub databases: Vec<DbBackupInfo>,
     pub duration_secs: u64,
+}
+
+/// State of the Windows scheduled task that runs automatic backups.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleStatus {
+    pub enabled: bool,
+    /// Human summary, e.g. "Every day at 03:00".
+    pub summary: String,
+    /// Next run time as reported by Windows, if available.
+    pub next_run: Option<String>,
 }
 
 /// Database connection details read from the repack's worldserver.conf.

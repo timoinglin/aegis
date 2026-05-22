@@ -19,6 +19,23 @@ fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("settings.json"))
 }
 
+/// %APPDATA%\Aegis resolved without a Tauri AppHandle (for headless --backup mode).
+/// Matches what app.path().data_dir() returns on Windows (roaming AppData).
+pub fn aegis_dir() -> Option<PathBuf> {
+    std::env::var_os("APPDATA").map(|p| PathBuf::from(p).join("Aegis"))
+}
+
+/// Load settings directly from disk, no AppHandle — for the --backup CLI path.
+pub fn load_headless() -> Settings {
+    let Some(dir) = aegis_dir() else {
+        return Settings::default();
+    };
+    match fs::read_to_string(dir.join("settings.json")) {
+        Ok(text) => serde_json::from_str(text.trim_start_matches('\u{feff}')).unwrap_or_default(),
+        Err(_) => Settings::default(),
+    }
+}
+
 /// Load saved settings, or sensible defaults on first run / unreadable file.
 pub fn load(app: &AppHandle) -> Settings {
     let Ok(path) = settings_path(app) else {

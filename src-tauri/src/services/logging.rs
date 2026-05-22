@@ -5,13 +5,16 @@ use std::path::PathBuf;
 use chrono::Local;
 use tauri::{AppHandle, Manager};
 
+fn daily_file() -> String {
+    format!("aegis-{}.log", Local::now().format("%Y-%m-%d"))
+}
+
 /// Where the daily op-log lives: %APPDATA%\Aegis\logs\aegis-YYYY-MM-DD.log
 fn log_path(app: &AppHandle) -> Option<PathBuf> {
     // %APPDATA%\Aegis\logs — see the note in settings_store.rs on why not app_data_dir().
     let dir = app.path().data_dir().ok()?.join("Aegis").join("logs");
     create_dir_all(&dir).ok()?;
-    let file = format!("aegis-{}.log", Local::now().format("%Y-%m-%d"));
-    Some(dir.join(file))
+    Some(dir.join(daily_file()))
 }
 
 /// Replace every secret occurrence with "***" so passwords never hit the log file.
@@ -31,7 +34,21 @@ fn redact(text: &str, secrets: &[String]) -> String {
 /// This is the second half of the golden rule: friendly text goes to the UI,
 /// the raw (redacted) detail goes here so users can attach the log to a GitHub issue.
 pub fn log_op(app: &AppHandle, level: &str, context: &str, detail: &str, secrets: &[String]) {
-    let Some(path) = log_path(app) else { return };
+    if let Some(path) = log_path(app) {
+        write_line(&path, level, context, detail, secrets);
+    }
+}
+
+/// Headless logger (no AppHandle) for the --backup CLI path. Same file as the GUI.
+pub fn log_headless(level: &str, context: &str, detail: &str, secrets: &[String]) {
+    let Some(base) = std::env::var_os("APPDATA").map(PathBuf::from) else { return };
+    let dir = base.join("Aegis").join("logs");
+    if create_dir_all(&dir).is_ok() {
+        write_line(&dir.join(daily_file()), level, context, detail, secrets);
+    }
+}
+
+fn write_line(path: &PathBuf, level: &str, context: &str, detail: &str, secrets: &[String]) {
     let line = format!(
         "[{}] {:5} {} :: {}\n",
         Local::now().format("%Y-%m-%d %H:%M:%S"),

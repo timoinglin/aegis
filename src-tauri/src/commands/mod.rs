@@ -3,8 +3,8 @@
 
 use tauri::AppHandle;
 
-use crate::models::{AddonInfo, BackupFile, BackupResult, DbConnInfo, HealthReport, RestoreResult, ServerStatus, Settings};
-use crate::services::{accounts, addons, backup, health, logging, repack_conf, restore, server_control, settings_store};
+use crate::models::{AddonInfo, BackupFile, BackupResult, DbConnInfo, HealthReport, RestoreResult, ScheduleStatus, ServerStatus, Settings};
+use crate::services::{accounts, addons, backup, health, logging, repack_conf, restore, scheduler, server_control, settings_store};
 use crate::services::server_control::Service;
 
 #[tauri::command]
@@ -114,6 +114,22 @@ pub async fn create_backup(app: AppHandle) -> Result<BackupResult, String> {
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Current state of the automatic-backup scheduled task.
+#[tauri::command]
+pub fn schedule_status(app: AppHandle) -> ScheduleStatus {
+    let settings = settings_store::load(&app);
+    scheduler::status(&settings)
+}
+
+/// Save settings, then make the Windows scheduled task match them.
+#[tauri::command]
+pub fn apply_schedule(app: AppHandle, settings: Settings) -> Result<ScheduleStatus, String> {
+    settings_store::save(&app, &settings)?;
+    let status = scheduler::apply(&settings)?;
+    logging::log_op(&app, "INFO", "schedule", &format!("enabled={} {}", settings.backup_schedule_enabled, status.summary), &settings.secrets());
+    Ok(status)
 }
 
 /// Backups available to restore, newest first.

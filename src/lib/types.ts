@@ -51,6 +51,18 @@ export interface Settings {
   raPassword: string;
   /** False until the first-run setup wizard has been completed. */
   setupComplete: boolean;
+  // Automatic backup schedule
+  backupScheduleEnabled: boolean;
+  backupFrequency: string; // "daily" | "weekly"
+  backupTime: string; // "HH:MM"
+  backupWeekday: string; // MON..SUN
+  backupKeep: number; // how many to keep
+}
+
+export interface ScheduleStatus {
+  enabled: boolean;
+  summary: string;
+  nextRun: string | null;
 }
 
 export interface DbConnInfo {

@@ -6,6 +6,7 @@ import type {
   DbConnInfo,
   HealthReport,
   RestoreResult,
+  ScheduleStatus,
   ServerStatus,
   Settings,
 } from "./types";
@@ -108,6 +109,16 @@ export function createBackup(): Promise<BackupResult> {
 /** Backups available to restore, newest first. */
 export function listBackups(): Promise<BackupFile[]> {
   return invoke<BackupFile[]>("list_backups");
+}
+
+/** Current state of the automatic-backup scheduled task. */
+export function scheduleStatus(): Promise<ScheduleStatus> {
+  return invoke<ScheduleStatus>("schedule_status");
+}
+
+/** Save settings and make the Windows scheduled task match them. */
+export function applySchedule(settings: Settings): Promise<ScheduleStatus> {
+  return invoke<ScheduleStatus>("apply_schedule", { settings });
 }
 
 /**

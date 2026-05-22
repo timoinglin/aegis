@@ -19,6 +19,7 @@ pub fn report(app: &AppHandle) -> HealthReport {
         check_worldserver(),
         check_backup_folder(app, &settings),
         check_backups(app, &settings),
+        check_schedule(&settings),
     ];
     checks.extend(reserved_slots());
 
@@ -202,6 +203,30 @@ fn humanize_age(secs: u64) -> String {
     }
 }
 
+fn check_schedule(settings: &Settings) -> HealthCheck {
+    let status = crate::services::scheduler::status(settings);
+    HealthCheck {
+        id: "backup_schedule".into(),
+        category: CAT_BACKUPS.into(),
+        status: HealthStatus::Ok, // informational — never nags
+        title: if status.enabled {
+            match status.next_run {
+                Some(next) => format!("Automatic backups: {} (next: {next})", status.summary),
+                None => format!("Automatic backups: {}", status.summary),
+            }
+        } else {
+            "Automatic backups are off".into()
+        },
+        why: if status.enabled {
+            String::new()
+        } else {
+            "Turn them on in Backup so you always have a recent copy.".into()
+        },
+        fix: vec![],
+        active: true,
+    }
+}
+
 /// Still-dormant slots — wired now, populated as their features land.
 fn reserved_slots() -> Vec<HealthCheck> {
     let slot = |id: &str, title: &str| HealthCheck {
@@ -213,10 +238,7 @@ fn reserved_slots() -> Vec<HealthCheck> {
         fix: vec![],
         active: false,
     };
-    vec![
-        slot("backup_schedule", "Automatic backups (coming in a later update)"),
-        slot("server_stopped_for_restore", "Safe-to-restore check (coming in a later update)"),
-    ]
+    vec![slot("server_stopped_for_restore", "Safe-to-restore check (coming in a later update)")]
 }
 
 fn ok(id: &str, category: &str, title: &str) -> HealthCheck {

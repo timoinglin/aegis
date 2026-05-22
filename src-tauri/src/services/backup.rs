@@ -8,7 +8,7 @@ use chrono::Local;
 use tauri::{AppHandle, Manager};
 
 use crate::models::{BackupResult, DbBackupInfo, Settings};
-use crate::services::{logging, mysql};
+use crate::services::{logging, mysql, settings_store};
 
 /// Default backup location: %APPDATA%\Aegis\backups
 pub fn default_dir(app: &AppHandle) -> Option<PathBuf> {
@@ -189,6 +189,49 @@ pub fn list_backups(dir: &Path) -> Vec<crate::models::BackupFile> {
         .collect();
     files.sort_by(|a, b| b.modified_ms.cmp(&a.modified_ms));
     files
+}
+
+/// Keep the `keep` newest backups, delete the rest. Returns how many were removed.
+/// keep == 0 means keep everything.
+pub fn prune_backups(dir: &Path, keep: u32) -> usize {
+    if keep == 0 {
+        return 0;
+    }
+    list_backups(dir) // newest first
+        .into_iter()
+        .skip(keep as usize)
+        .filter(|f| fs::remove_file(&f.path).is_ok())
+        .count()
+}
+
+/// Headless backup for the scheduled task (`aegis.exe --backup`). No AppHandle —
+/// reads settings + resolves paths from %APPDATA%, backs up, prunes, logs.
+pub fn run_scheduled() -> Result<String, String> {
+    let settings = settings_store::load_headless();
+    let dir = match settings.backup_dir.as_deref().filter(|s| !s.trim().is_empty()) {
+        Some(custom) => PathBuf::from(custom),
+        None => settings_store::aegis_dir()
+            .ok_or("Couldn't resolve the backup folder.")?
+            .join("backups"),
+    };
+    fs::create_dir_all(&dir).map_err(|e| format!("Couldn't create the backup folder: {e}"))?;
+
+    match create_backup_to(&settings, &dir, "scheduled") {
+        Ok(r) => {
+            let pruned = prune_backups(&dir, settings.backup_keep);
+            logging::log_headless(
+                "INFO",
+                "backup/scheduled",
+                &format!("{} ({} bytes, footer={}, pruned {pruned})", r.path, r.size_bytes, r.completed),
+                &settings.secrets(),
+            );
+            Ok(format!("Saved {} (removed {pruned} old)", r.path))
+        }
+        Err(e) => {
+            logging::log_headless("ERROR", "backup/scheduled", &format!("failed: {e}"), &settings.secrets());
+            Err(e)
+        }
+    }
 }
 
 /// Newest *.sql backup in the folder (path, modified time, size) — for Health.
