@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/for-EmuCoach%20MoP%205.4.8-2dd4bf" alt="EmuCoach MoP 5.4.8">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License: MIT">
-  <img src="https://img.shields.io/badge/status-In%20Development-orange" alt="Status: In Development">
+  <img src="https://img.shields.io/badge/status-Released-2dd4bf" alt="Status: Released">
   <img src="https://img.shields.io/github/v/release/timoinglin/aegis?label=release&color=8B4513" alt="GitHub Release">
 </p>
 
@@ -24,7 +24,7 @@
 >
 > [![Support the project on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kneuma)
 
-> ⚠️ **In development** — Aegis is being built in the open. The first downloadable release is coming soon. Until then you can [build it from source](#building-from-source) or watch the repo for the release.
+> ✅ **v0.1.0 is out!** [Download the installer](https://github.com/timoinglin/aegis/releases/latest) and you're up and running in a minute. Built in the open — feedback and issues warmly welcome.
 
 ## Table of Contents
 
@@ -155,11 +155,8 @@ offline with one click. Remove just as easily.*
 
 ## Download & Install
 
-> ⚠️ The first release isn't out yet — this is how it'll work once it is. For now, see
-> [Building from source](#building-from-source).
-
 1. Go to the [**Releases**](https://github.com/timoinglin/aegis/releases) page and download the
-   latest **`Aegis-Setup.exe`**.
+   latest **`Aegis_<version>_x64-setup.exe`**.
 2. Double-click it to install.
 3. Open **Aegis** from your Start menu or desktop. Done!
 
@@ -195,7 +192,7 @@ Your settings are saved on your PC (in your `AppData\Aegis` folder), so you only
 ## Keeping it up to date
 
 Aegis can check for new versions from inside the app and update itself when you click the button —
-no reinstalling, no hunting for downloads. *(Coming with the first release.)*
+no reinstalling, no hunting for downloads. Open **About → Check for updates** whenever you like.
 
 ## Is it safe?
 
