@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/for-EmuCoach%20MoP%205.4.8-2dd4bf" alt="EmuCoach MoP 5.4.8">
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License: MIT">
+  <a href="https://www.emucoach.com/"><img src="https://img.shields.io/badge/for-EmuCoach%20MoP%205.4.8-2dd4bf" alt="EmuCoach MoP 5.4.8"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="License: MIT"></a>
   <a href="https://github.com/timoinglin/aegis/releases/latest"><img src="https://img.shields.io/github/v/release/timoinglin/aegis?label=release&color=0d9488" alt="GitHub Release"></a>
   <a href="https://github.com/timoinglin/aegis/releases"><img src="https://img.shields.io/github/downloads/timoinglin/aegis/total?label=downloads&color=2dd4bf" alt="Downloads"></a>
 </p>
