@@ -100,11 +100,58 @@ from `worldserver.conf`, Remote Access test, all in under a minute.*
 ![Setup walkthrough](assets/img/screenshots/aegis_setup.gif)
 
 ### Health dashboard
-*Color **and** text everywhere — one glance tells you what needs attention. If something's wrong,
-the panel says what, why, and exactly what to do. The raw (redacted) details quietly go to a log
-file you can attach to a GitHub issue.*
+*Color **and** text everywhere — one glance tells you what needs attention. Connectivity, folders,
+backups: everything proactively checked at every start. If something's wrong, the panel says what,
+why, and exactly what to do. The raw (redacted) details quietly go to a log file you can attach
+to a GitHub issue.*
 
 ![Health dashboard](assets/img/screenshots/status.png)
+
+### Server control
+*Start / stop / restart your worldserver, authserver and MySQL, or bring the whole stack up in the
+right order with "Start everything". Worldserver stops safely via Remote Access when it can.
+One-click open for `worldserver.conf` straight in the row.*
+
+![Server control](assets/img/screenshots/server.png)
+
+### Account management
+*Create accounts, set GM levels, reset passwords, and **delete accounts** — all through Remote
+Access, with a typed-name confirm on the destructive one. The worldserver itself hashes
+passwords, so logins always work.*
+
+![Accounts](assets/img/screenshots/accounts.png)
+
+### Characters
+*Search hundreds of characters, back up any one of them (or all in a single RA session), and
+import a character dump onto any account. Aegis computes a safe character ID across every
+`character_*` table so there are no orphan-row collisions on import.*
+
+![Characters](assets/img/screenshots/characters.png)
+
+### Backup + automatic schedule
+*Full database backup with size + row-count sanity. Schedule daily or weekly backups with
+auto-rotation. There's also a "Website data only" button for the registration portal's tables.*
+
+![Backup](assets/img/screenshots/backup.png)
+
+### Safe restore
+*Aegis takes a fresh safety backup first, asks you to type a confirmation, and refuses to restore
+while your worldserver or authserver is running — polling live, so the gate opens the moment you
+stop them.*
+
+![Restore](assets/img/screenshots/restore.png)
+
+### Database maintenance
+*Analyze (refresh statistics), Optimize (reclaim space) and Check & repair, with honest copy
+about what each does on InnoDB. Plus a live size summary across every database — and the total.*
+
+![Maintenance](assets/img/screenshots/maintenance.png)
+
+### Add-ons
+*Your GM panel featured at the top; 14 popular community add-ons bundled with the app, installed
+offline with one click. Remove just as easily.*
+
+![Add-ons](assets/img/screenshots/addons.png)
 
 ## Download & Install
 

@@ -1,4 +1,4 @@
-import { Archive, Plug, RefreshCw } from "lucide-react";
+import { Archive, FolderTree, Plug, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_META } from "./status";
@@ -6,6 +6,7 @@ import type { HealthCheck, HealthReport } from "@/lib/types";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   Connectivity: <Plug className="h-4 w-4 text-slate-400" />,
+  Folders: <FolderTree className="h-4 w-4 text-slate-400" />,
   Backups: <Archive className="h-4 w-4 text-slate-400" />,
 };
 
