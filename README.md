@@ -173,6 +173,26 @@ certificate). It's safe to continue:
 
 You'll only need to do this once.
 
+### What about antivirus warnings?
+
+Some antivirus tools (including Windows Defender) may show a generic warning like
+`Trojan:Win32/Bearfoos.A!ml` on small unsigned apps like Aegis. The `!ml` suffix means it's a
+machine-learning *guess*, not a real malware match — it triggers on perfectly normal patterns
+Aegis uses (writing a Start-menu shortcut, registering an uninstaller, running scheduled tasks
+for backups). It is **a false positive**.
+
+Two ways to deal with it:
+
+- **Quickest** — open *Windows Security → Virus & threat protection → Protection history*, find
+  the Aegis entry, click **Actions → Allow on device**. Then re-install if needed.
+- **Help everyone** — report the file as a [false positive to Microsoft](https://www.microsoft.com/en-us/wdsi/filesubmission)
+  (drop in `Aegis_<version>_x64-setup.exe`). They usually correct it within a day, and the
+  warning goes away for every Aegis user worldwide.
+
+The long-term fix is a code-signing certificate, which we'll buy if Aegis gets enough users to
+justify the cost. Aegis is fully open-source — every line that ships is in this repo, you can
+read it before you run it.
+
 ## First time you open it
 
 Aegis walks you through a quick setup the first time:

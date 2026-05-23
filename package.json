@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Friendly Windows GUI for EmuCoach MoP-repack server owners — one-click DB & server management.",
   "type": "module",

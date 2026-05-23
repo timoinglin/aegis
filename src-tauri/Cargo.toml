@@ -1,6 +1,6 @@
 [package]
 name = "aegis"
-version = "0.1.0"
+version = "0.1.1"
 description = "Friendly Windows GUI for EmuCoach MoP-repack server management."
 authors = ["Kneuma"]
 edition = "2021"

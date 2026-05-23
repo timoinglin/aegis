@@ -1,7 +1,13 @@
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::models::Settings;
+
+/// Hide the console window when launching mysql/mysqldump/mysqlcheck. Without
+/// this every backup, query and maintenance run pops a black cmd window for as
+/// long as the tool is alive — surprising and ugly for a GUI app.
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Resolve the path to a bundled mysql tool, e.g. `bin("mysqldump")`.
 pub fn bin(server_path: &str, exe: &str) -> PathBuf {
@@ -36,7 +42,8 @@ pub fn base_cmd(settings: &Settings, exe: &str) -> Result<Command, String> {
     cmd.arg(format!("-h{}", settings.db_host))
         .arg(format!("-P{}", settings.db_port))
         .arg(format!("-u{}", settings.db_user))
-        .env("MYSQL_PWD", &settings.db_password);
+        .env("MYSQL_PWD", &settings.db_password)
+        .creation_flags(CREATE_NO_WINDOW);
     Ok(cmd)
 }
 
