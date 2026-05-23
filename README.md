@@ -17,7 +17,8 @@
   <img src="https://img.shields.io/badge/for-EmuCoach%20MoP%205.4.8-2dd4bf" alt="EmuCoach MoP 5.4.8">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License: MIT">
   <img src="https://img.shields.io/badge/status-Released-2dd4bf" alt="Status: Released">
-  <img src="https://img.shields.io/github/v/release/timoinglin/aegis?label=release&color=8B4513" alt="GitHub Release">
+  <a href="https://github.com/timoinglin/aegis/releases/latest"><img src="https://img.shields.io/github/v/release/timoinglin/aegis?label=release&color=8B4513" alt="GitHub Release"></a>
+  <a href="https://github.com/timoinglin/aegis/releases"><img src="https://img.shields.io/github/downloads/timoinglin/aegis/total?label=downloads&color=2dd4bf" alt="Downloads"></a>
 </p>
 
 > 💛 **Find Aegis useful?** It's free and open-source, built in spare time for the EmuCoach community. If it saved you a headache, a coffee genuinely helps it keep growing — see [Support the Project](#support-the-project).
