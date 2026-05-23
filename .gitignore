@@ -4,10 +4,18 @@ node_modules/
 # Frontend build
 dist/
 *.tsbuildinfo
+.vite/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Rust / Tauri
 src-tauri/target/
 src-tauri/gen/
+src-tauri/Cargo.lock.bak
 
 # Note: src-tauri/icons/* ARE committed (placeholder set) so the repo builds
 # out of the box. Regenerate with `npx tauri icon <art.png>` when the final logo lands.

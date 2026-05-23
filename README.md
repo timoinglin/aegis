@@ -6,7 +6,8 @@
 
 <p align="center">
   A friendly Windows app that makes running your <strong>EmuCoach Mists of Pandaria</strong> server easy —
-  back up your database, create accounts, set GM levels, and more, all with simple buttons.
+  back up your database, manage accounts and characters, install add-ons, schedule automatic backups,
+  and more. All with simple buttons.
   <br>No command line. No HeidiSQL. No SQL knowledge needed.
 </p>
 
@@ -52,45 +53,111 @@ for server owners of *every* skill level — if you can install a repack, you ca
 ## What it can do
 
 - 🩺 **Health dashboard** — One screen that tells you, at a glance, whether everything's working:
-  is your database reachable, are the server tools where Aegis expects them, is Remote Access on.
-  If something's wrong, Aegis explains it in plain English and tells you exactly how to fix it —
-  **never a scary error message**.
-- 💾 **One-click backups** — Save a complete copy of your accounts, characters and world to a single
-  file. Aegis shows you the size and a quick sanity check so you know the backup actually worked.
-- ♻️ **Safe restore** — Put a backup back if something goes wrong. Aegis always takes a fresh safety
-  backup *first*, asks you to confirm, and won't let you restore while your server is running (which
-  could corrupt your data). Belt and braces.
-- 👥 **Account management** — Create accounts, set someone's GM level, or reset a password — without
-  touching the database. Passwords are handled by your server itself, so logins always work.
-- ⚙️ **Settings & Test Connection** — Aegis tries to find your repack automatically. One button
-  checks the connection so you're never guessing.
+  is your database reachable, are the server tools where Aegis expects them, is Remote Access on,
+  is the worldserver running, when was your last backup. Problems come with **plain-English fixes**,
+  never raw error messages.
+- 🚀 **Server control** — Start, stop and restart your MySQL / authserver / worldserver from one
+  page. **"Start everything"** brings the whole server up in the correct order with a single click.
+  Stopping the worldserver uses a safe save-and-shutdown over Remote Access.
+- 👥 **Account management** — Create accounts, set GM levels and reset passwords without touching
+  the database. The worldserver does the password hashing itself, so logins always work.
+- 🧙 **Character backup & import** — Back up a single character or all of them, and import character
+  dumps into any account. The server assigns a fresh character ID automatically on import — no
+  collisions.
+- 💾 **One-click backups** — Save a complete copy of your accounts, characters and world data, or
+  just your website tables. Aegis shows you the size and a per-database sanity check.
+- ⏰ **Automatic backups** — Schedule daily or weekly backups (via Windows Task Scheduler). Choose
+  the time, choose how many to keep, Aegis handles the rest — even when the app isn't open.
+- ♻️ **Safe restore** — Put a backup back if something goes wrong. Aegis always takes a fresh
+  safety backup *first*, asks you to type a confirmation, and refuses to restore while your server
+  is running (which could corrupt your data). Belt and braces.
+- 🔧 **Database upkeep** — Analyze, optimize or check your databases for problems, with one button
+  each. Honest about what each one actually does on InnoDB.
+- 🧩 **Add-ons** — Install handy add-ons into your game with one click. **Your GM panel** is
+  featured at the top; **14 popular community add-ons** (DBM, WeakAuras, Bagnon, Details!, OmniCC,
+  Recount, AtlasLoot, Bartender4, Gatherer, TellMeWhen, Skada, NPCScan, Quartz, Postal) come
+  bundled and install offline. One click to remove, too.
+- 🧰 **Other tools** — Direct links to the wider Aegis-ecosystem tools (the AI assistant, the in-game
+  GM panel, the registration website, the Telegram monitor).
+- ⚙️ **Auto-detected paths + first-run wizard** — Aegis tries to find your repack, server programs
+  and game client for you, then verifies each is the right folder. You just confirm.
 
 ## Preview
 
-### Health dashboard — everything at a glance
-*Green means good. If something needs attention, you'll know — and you'll know what to do about it.*
+> 🎬 **Setup walkthrough** *(animated GIF coming soon — see [assets/img/setup-walkthrough.gif](assets/img/setup-walkthrough.gif))*
+>
+> ![Setup walkthrough](assets/img/setup-walkthrough.gif)
+
+### First-run setup
+*Aegis walks you through three folders + Remote Access, auto-detecting and verifying each one.*
+
+![Setup wizard](assets/img/screenshots/setup-wizard.png)
+
+### Health dashboard
+*Color and text everywhere — one glance tells you what needs attention. If something's wrong, you
+get a plain-English explanation and the steps to fix it. Never a raw error message.*
 
 ![Health dashboard](assets/img/screenshots/status.png)
 
-### Plain-English problems, not scary errors
-*When something's wrong, Aegis tells you what happened, why it matters, and the steps to fix it.*
+### Friendly problems, not scary errors
+*The golden rule, end to end: the panel tells you what's wrong, why it matters, and exactly what
+to do — while the raw (redacted) details quietly go to a log file you can attach to a GitHub issue.*
 
 ![Friendly errors](assets/img/screenshots/status-error.png)
 
+### Server control
+*Start / stop / restart your worldserver, authserver and MySQL, or bring the whole stack up in the
+right order with "Start everything". Worldserver stops safely via Remote Access when it can.*
+
+![Server control](assets/img/screenshots/server.png)
+
 ### Account management
-*Create an account, set a GM level, or reset a password — just fill in the boxes.*
+*Create accounts, set GM levels, or reset passwords. Aegis talks to your server's Remote Access —
+the worldserver itself hashes the passwords, so logins always work.*
 
 ![Accounts](assets/img/screenshots/accounts.png)
 
-### One-click backups
-*Back up your whole server to one file. See the size and a sanity check when it's done.*
+### Characters
+*Search 500+ characters, back up any one of them (or all), and import a character dump onto any
+account — the server picks a free character ID for you.*
+
+![Characters](assets/img/screenshots/characters.png)
+
+### Backup + automatic schedule
+*Full database backup with size + row-count sanity. Schedule daily or weekly backups with
+auto-rotation. There's also a "Website data only" button for the registration portal's tables.*
 
 ![Backup](assets/img/screenshots/backup.png)
 
 ### Safe restore
-*Aegis takes a safety backup first and won't restore while your server is running.*
+*Aegis takes a fresh safety backup first, asks you to type a confirmation, and refuses to restore
+while your server is running.*
 
 ![Restore](assets/img/screenshots/restore.png)
+
+### Database maintenance
+*Analyze (refresh statistics), Optimize (reclaim space) and Check & repair, with honest copy about
+what each does on InnoDB.*
+
+![Maintenance](assets/img/screenshots/maintenance.png)
+
+### Add-ons
+*Your GM panel featured at the top; 14 popular community add-ons bundled with the app, installed
+offline with one click. Remove just as easily.*
+
+![Add-ons](assets/img/screenshots/addons.png)
+
+### Other tools
+*Quick links to the rest of the toolkit (AI assistant, in-game GM panel, registration website,
+Telegram monitor).*
+
+![Other tools](assets/img/screenshots/other-tools.png)
+
+### Settings
+*Database, Remote Access, paths and backup folder — all in one place, with live "this folder
+looks right" verification.*
+
+![Settings](assets/img/screenshots/settings.png)
 
 ## Download & Install
 
@@ -119,12 +186,16 @@ You'll only need to do this once.
 
 Aegis walks you through a quick setup the first time:
 
-1. It tries to **find your repack automatically**. If it can't, you just point it at your repack's
-   `_Server` folder (the one with `mysql` inside).
-2. It **tests the connection** to your database so you know it's working.
-3. You're done — the Health dashboard turns green and you can start using the buttons.
+1. It tries to **find your repack automatically** — both the **Repack** folder (with worldserver.exe)
+   and the **`_Server`** folder (with mysql inside). If it can't, you point Aegis at them yourself.
+2. It **reads your database settings** from `worldserver.conf` automatically, and lets you test the
+   connection.
+3. You enter your **Remote Access** login (or skip it for now — there's a built-in guide for setting
+   it up on fresh repacks).
+4. It detects your **WoW client folder** so it can install add-ons later.
+5. Done — the Health dashboard turns green and you can start using the buttons.
 
-Your settings are saved on your PC (in your `AppData` folder), so you only do this once.
+Your settings are saved on your PC (in your `AppData\Aegis` folder), so you only do this once.
 
 ## Keeping it up to date
 
@@ -139,10 +210,11 @@ Aegis is built to be careful, because we know a wrong click on a server can ruin
   can always go back.
 - ✋ **It asks before doing anything destructive** — you have to type a confirmation, and Aegis won't
   let you restore while your server is running.
-- 🔒 **Your password is never shown or saved in plain text.** Account passwords are handled by your
-  own server.
-- 📋 **Everything is written to a log file** (in your `AppData\Aegis\logs` folder). If you ever need
-  help, you can attach that log so it's easy to see what happened.
+- 🔒 **Passwords are never shown or saved in plain text.** Account passwords are handled by your
+  own server. Database backups stream straight to disk via the bundled `mysqldump` with consistent
+  snapshots — no manual SQL.
+- 📋 **Everything is written to a log file** (in your `AppData\Aegis\logs` folder) with passwords
+  redacted. If you ever need help, you can attach that log so it's easy to see what happened.
 
 ## Troubleshooting & Help
 
@@ -169,6 +241,8 @@ npm run app:build    # build a release installer
 Aegis is built with [Tauri](https://tauri.app/) (Rust backend) + React + TypeScript + Tailwind +
 shadcn/ui. It shells out to the repack's own bundled `mysql` / `mysqldump` binaries and talks to the
 worldserver's Remote Access — it never bundles its own database tools.
+
+See [RELEASING.md](RELEASING.md) for the steps to cut a signed release.
 
 ## Support the Project
 

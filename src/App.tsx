@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Boxes, HardDriveDownload, Info, Puzzle, Rocket, RotateCcw, Settings as SettingsIcon, ShieldCheck, UserSquare2, Users, Wrench } from "lucide-react";
+import { Activity, Boxes, HardDriveDownload, Info, Puzzle, Rocket, RotateCcw, Settings as SettingsIcon, UserSquare2, Users, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSettings } from "@/lib/ipc";
 import { useHealth } from "@/features/health/useHealth";
@@ -80,7 +80,7 @@ export default function App() {
 function Brand() {
   return (
     <div className="mb-3 flex items-center gap-2 px-2 py-1">
-      <ShieldCheck className="h-5 w-5 text-brand" />
+      <img src="/logo.png" alt="" className="h-7 w-7 shrink-0" />
       <span className="text-lg font-semibold tracking-tight">Aegis</span>
     </div>
   );

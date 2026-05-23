@@ -1,8 +1,13 @@
-import { RefreshCw } from "lucide-react";
+import { Archive, Plug, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { STATUS_META } from "./status";
 import type { HealthCheck, HealthReport } from "@/lib/types";
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  Connectivity: <Plug className="h-4 w-4 text-slate-400" />,
+  Backups: <Archive className="h-4 w-4 text-slate-400" />,
+};
 
 /**
  * The Status / Overview surface. Lists every health check with its plain-language
@@ -38,7 +43,10 @@ export function StatusCard({
       {Object.entries(grouped).map(([category, checks]) => (
         <Card key={category}>
           <CardHeader>
-            <CardTitle>{category}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {CATEGORY_ICONS[category]}
+              {category}
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col divide-y divide-slate-800">
             {checks.map((check) => (
@@ -64,7 +72,7 @@ function CheckRow({
   const dormant = !check.active;
 
   return (
-    <div className={`flex items-start gap-3 py-3 ${dormant ? "opacity-50" : ""}`}>
+    <div className={`group flex items-start gap-3 py-3 ${dormant ? "opacity-50" : ""}`}>
       <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
       <div className="flex-1">
         <div className="flex items-center gap-2">
@@ -87,6 +95,7 @@ function CheckRow({
           title="Re-check this"
           onClick={() => onRecheck(check.id)}
           disabled={loading}
+          className="opacity-30 transition-opacity group-hover:opacity-100"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
         </Button>
