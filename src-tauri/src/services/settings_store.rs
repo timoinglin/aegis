@@ -57,7 +57,8 @@ pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
 
 /// Best-effort probe for the repack's "_Server" folder. Prefer deriving from a
 /// known Repack path (sibling layout: `<root>\Repack` ⇔ `<root>\Database\_Server`),
-/// fall back to a bounded drive scan.
+/// fall back to a bounded content-based drive scan that finds any folder with
+/// mysql\bin\mysqldump.exe inside, no matter the folder name.
 pub fn autodetect_server_path(repack_path: Option<&str>) -> Option<String> {
     // ...\Repack -> ...\Database\_Server (sibling under the install root).
     if let Some(root) = repack_path.and_then(|rp| Path::new(rp).parent()) {
@@ -66,13 +67,12 @@ pub fn autodetect_server_path(repack_path: Option<&str>) -> Option<String> {
             return Some(server.to_string_lossy().into_owned());
         }
     }
-    let rels = ["Database\\_Server", "_Server"];
-    scan_drives(&rels, |p| crate::services::mysql::has_bins(p))
+    scan_drives(|p| crate::services::mysql::has_bins(p))
 }
 
 /// Find the "Repack" folder (authserver.exe / worldserver.exe). Prefer deriving
-/// it from the known _Server path (it's a sibling under the install root); fall
-/// back to a generic drive scan.
+/// it from the known _Server path (sibling under the install root); fall back
+/// to a content-based scan for any folder containing worldserver.exe.
 pub fn autodetect_repack_path(server_path: Option<&str>) -> Option<String> {
     // ...\Database\_Server -> ...\<install root>\Repack
     if let Some(root) = server_path.and_then(|sp| Path::new(sp).parent().and_then(Path::parent)) {
@@ -81,69 +81,107 @@ pub fn autodetect_repack_path(server_path: Option<&str>) -> Option<String> {
             return Some(repack.to_string_lossy().into_owned());
         }
     }
-    let rels = ["Repack"];
-    scan_drives(&rels, |p| p.join("worldserver.exe").is_file())
+    scan_drives(|p| p.join("worldserver.exe").is_file())
 }
 
-/// Probe `<drive>\<a>\<rel>` AND `<drive>\<a>\<b>\<rel>` against `matches` —
-/// covers `C:\Repack` and `C:\Games\MyMoP\Repack` alike without paying the
-/// cost of unbounded recursion. Returns the first hit.
-fn scan_drives(rels: &[&str], matches: impl Fn(&Path) -> bool) -> Option<String> {
-    let try_rels = |base: &Path, matches: &dyn Fn(&Path) -> bool| -> Option<String> {
-        for rel in rels {
-            let candidate = base.join(rel);
-            if matches(&candidate) {
-                return Some(candidate.to_string_lossy().into_owned());
-            }
-        }
-        None
+/// Bounded depth-first scan of each drive looking for the first folder where
+/// `matches` returns true. Goes 4 levels deep (enough for `C:\X\Y\Z\_Server`
+/// without paying for an unbounded recursion); skips obvious system folders so
+/// it doesn't waste time walking C:\Windows or C:\Users.
+///
+/// Content-based by design — we look at the FILES in a folder, not its name —
+/// so a user-renamed `Database_c\_Server` is found just as easily as the stock
+/// `Database\_Server`.
+fn scan_drives(matches: impl Fn(&Path) -> bool) -> Option<String> {
+    const MAX_DEPTH: u32 = 4;
+    let is_noise = |name: &str| {
+        let n = name.to_lowercase();
+        matches!(
+            n.as_str(),
+            "windows"
+            | "program files"
+            | "program files (x86)"
+            | "programdata"
+            | "users"
+            | "$recycle.bin"
+            | "system volume information"
+            | "perflogs"
+            | "recovery"
+            | "intel"
+            | "appdata"
+            | "boot"
+            | "msocache"
+            | "config.msi"
+        ) || n.starts_with('$')
     };
-    for drive in ["C:", "D:", "E:", "F:"] {
-        let Ok(level1) = fs::read_dir(format!("{drive}\\")) else { continue };
-        for a in level1.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
-            if let Some(hit) = try_rels(&a, &matches) {
-                return Some(hit);
+
+    for drive in ["C:", "D:", "E:", "F:", "G:", "H:"] {
+        let root = PathBuf::from(format!("{drive}\\"));
+        if fs::read_dir(&root).is_err() {
+            continue;
+        }
+        // DFS (LIFO via stack); first hit wins.
+        let mut stack: Vec<(PathBuf, u32)> = vec![(root, 0)];
+        while let Some((dir, depth)) = stack.pop() {
+            // Don't run `matches` on the drive root itself — every drive would visit it.
+            if depth > 0 && matches(&dir) {
+                return Some(dir.to_string_lossy().into_owned());
             }
-            // One folder deeper, e.g. C:\Games\MyMoP\Database\_Server.
-            let Ok(level2) = fs::read_dir(&a) else { continue };
-            for b in level2.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
-                if let Some(hit) = try_rels(&b, &matches) {
-                    return Some(hit);
+            if depth >= MAX_DEPTH {
+                continue;
+            }
+            let Ok(entries) = fs::read_dir(&dir) else { continue };
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if !p.is_dir() {
+                    continue;
                 }
+                if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
+                    if is_noise(name) {
+                        continue;
+                    }
+                }
+                stack.push((p, depth + 1));
             }
         }
     }
     None
 }
 
-/// Best-effort guess for the WoW client folder. Scans drive roots for a folder
-/// whose name looks like a MoP client and that contains either an Interface\AddOns
-/// folder or any `wow*.exe` (different builds rename the exe).
+/// Best-effort guess for the WoW client folder. Two-stage so we don't pick a
+/// model-dump or side-install when the user has a primary client folder:
+///   1) Prefer a folder whose NAME hints at the right client (pandaria / mists /
+///      5.4.8 / wow / warcraft) AND has WoW install signals — that's the typical
+///      "Mists of Pandaria 5.4.8" folder.
+///   2) Fall back to any folder with WoW install signals if no named match found.
+/// Renamed clients are best picked via the Browse button.
 pub fn autodetect_client_path() -> Option<String> {
     use crate::services::paths;
-    let looks_like_client = |name: &str| {
-        let n = name.to_lowercase();
-        n.contains("pandaria") || n.contains("mists") || n.contains("5.4.8") || n.contains("548")
-    };
-    for drive in ["C:", "D:", "E:", "F:"] {
-        let Ok(entries) = fs::read_dir(format!("{drive}\\")) else { continue };
-        for entry in entries.flatten() {
-            let p = entry.path();
-            if !p.is_dir() {
-                continue;
-            }
-            let Some(name) = p.file_name().and_then(|s| s.to_str()) else { continue };
-            if !looks_like_client(name) {
-                continue;
-            }
-            if let Some(s) = p.to_str() {
-                if paths::is_client_dir(s) {
-                    return Some(s.to_string());
-                }
-            }
+    let has_strong_signals = |p: &Path| -> bool {
+        if !paths::has_wow_exe_in(p) {
+            return false;
         }
+        p.join("Data").is_dir() || p.join("Interface").join("AddOns").is_dir() || p.join("WTF").is_dir()
+    };
+    let name_hints_wow_mop = |p: &Path| -> bool {
+        p.file_name()
+            .and_then(|n| n.to_str())
+            .map(|n| n.to_lowercase())
+            .is_some_and(|n| {
+                n.contains("pandaria")
+                    || n.contains("mists")
+                    || n.contains("5.4.8")
+                    || n.contains("548")
+                    || n.contains("warcraft")
+                    || (n.starts_with("wow") && !n.contains("model"))
+            })
+    };
+    // Pass 1: name hint + content.
+    if let Some(hit) = scan_drives(|p| name_hints_wow_mop(p) && has_strong_signals(p)) {
+        return Some(hit);
     }
-    None
+    // Pass 2: content only — for clients with totally renamed folders.
+    scan_drives(has_strong_signals)
 }
 
 #[cfg(test)]
