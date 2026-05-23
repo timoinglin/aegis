@@ -32,3 +32,9 @@ Thumbs.db
 # Updater signing keys + password — NEVER commit these (only the public key,
 # which lives in tauri.conf.json, is safe to share). Store as CI secrets.
 src-tauri/.keys/
+
+# Per-release artifacts produced by RELEASING.md — they're attached to the
+# GitHub release, not stored in the repo (the URL stays stable via the
+# /releases/latest/download/ endpoint).
+/latest.json
+/RELEASE_NOTES.md
