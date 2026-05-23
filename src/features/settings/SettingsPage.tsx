@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { Save, FolderOpen } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PathField } from "@/components/PathField";
@@ -84,12 +85,28 @@ export function SettingsPage({ onSaved }: { onSaved: () => void }) {
             onDetect={async () => set("clientPath", (await autodetectClientPath()) ?? settings.clientPath)}
           />
           <Field label="Backup folder" hint="Leave empty to use the default (in your AppData folder).">
-            <input
-              className={inputCls}
-              value={settings.backupDir ?? ""}
-              placeholder="Default: %APPDATA%\Aegis\backups"
-              onChange={(e) => set("backupDir", e.target.value || null)}
-            />
+            <div className="flex gap-2">
+              <input
+                className={inputCls}
+                value={settings.backupDir ?? ""}
+                placeholder="Default: %APPDATA%\Aegis\backups"
+                onChange={(e) => set("backupDir", e.target.value || null)}
+              />
+              <Button
+                variant="outline"
+                title="Pick a folder"
+                onClick={async () => {
+                  const picked = await open({
+                    directory: true,
+                    multiple: false,
+                    defaultPath: settings.backupDir || undefined,
+                  });
+                  if (typeof picked === "string" && picked) set("backupDir", picked);
+                }}
+              >
+                <FolderOpen className="h-4 w-4" /> Browse
+              </Button>
+            </div>
           </Field>
         </CardContent>
       </Card>

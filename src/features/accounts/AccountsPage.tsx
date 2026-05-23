@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { CheckCircle2, UserPlus, ShieldHalf, KeyRound, Database } from "lucide-react";
+import { CheckCircle2, UserPlus, ShieldHalf, KeyRound, Database, UserX, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createAccount, setAccountPassword, setGmLevel, setGmLevelDirect } from "@/lib/ipc";
+import { createAccount, deleteAccount, setAccountPassword, setGmLevel, setGmLevelDirect } from "@/lib/ipc";
 import type { HealthReport } from "@/lib/types";
 import { GM_LEVELS } from "./gmLevels";
 import { RaSetupHelp } from "./RaSetupHelp";
@@ -28,6 +28,7 @@ export function AccountsPage({ health }: { health: HealthReport | null }) {
       <CreateAccountCard disabled={!raReady} />
       <SetGmLevelCard disabled={!raReady} />
       <ResetPasswordCard disabled={!raReady} />
+      <DeleteAccountCard disabled={!raReady} />
     </div>
   );
 }
@@ -230,6 +231,75 @@ function ResetPasswordCard({ disabled }: { disabled: boolean }) {
         <ResultLine result={result} />
         <Button onClick={submit} disabled={disabled || busy || !username || !password}>
           {busy ? "Resetting…" : "Reset password"}
+        </Button>
+      </div>
+    </ActionCard>
+  );
+}
+
+/**
+ * Permanent account delete via RA. Wraps `.account delete` and gates it on a
+ * typed-confirmation so a slip can't wipe an account by accident. The server
+ * also removes the account's characters automatically.
+ */
+function DeleteAccountCard({ disabled }: { disabled: boolean }) {
+  const [username, setUsername] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<Result>(null);
+
+  // Re-typing the account name is the safety gate.
+  const matches = username.trim().length > 0 && confirm.trim() === username.trim();
+
+  const submit = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const msg = await deleteAccount(username.trim());
+      setResult({
+        ok: true,
+        message: msg || `Account "${username.trim()}" deleted (along with its characters).`,
+      });
+      setUsername("");
+      setConfirm("");
+    } catch (e) {
+      setResult({ ok: false, message: String(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ActionCard icon={<UserX className="h-4 w-4 text-rose-400" />} title="Delete account">
+      <div className="flex items-start gap-2 rounded-md border border-rose-500/30 bg-rose-500/5 p-2 text-xs text-rose-200">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <p>
+          This <strong>permanently</strong> removes the account <em>and every character on it</em>.
+          There's no undo. If you only need to lock someone out, reset their password instead.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          className={inputCls}
+          placeholder="Account name"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <input
+          className={inputCls}
+          placeholder="Re-type the name to confirm"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <ResultLine result={result} />
+        <Button
+          onClick={submit}
+          disabled={disabled || busy || !matches}
+          className="bg-rose-600 text-white hover:bg-rose-500 disabled:bg-rose-900/40 disabled:text-rose-300/60"
+        >
+          {busy ? "Deleting…" : "Delete account"}
         </Button>
       </div>
     </ActionCard>

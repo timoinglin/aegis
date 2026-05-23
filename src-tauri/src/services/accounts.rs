@@ -215,6 +215,24 @@ pub fn set_gm_level_direct(
     Ok(format!("{msg} Ask the player to log out and back in for it to take effect."))
 }
 
+/// Delete an account (and its characters) via RA `.account delete <name>`.
+/// This is destructive — the caller must validate / confirm at the UI layer.
+pub fn delete_account(
+    app: &AppHandle,
+    settings: &Settings,
+    username: &str,
+) -> Result<String, String> {
+    validate_username(username)?;
+    run_logged(
+        app,
+        settings,
+        "account/delete",
+        &format!("delete '{username}'"),
+        &format!(".account delete {username}"),
+        &[],
+    )
+}
+
 pub fn set_password(
     app: &AppHandle,
     settings: &Settings,

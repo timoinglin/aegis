@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, RotateCcw, ServerCrash, ShieldCheck, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { listBackups, restoreBackup } from "@/lib/ipc";
-import type { BackupFile, HealthReport, RestoreResult } from "@/lib/types";
+import { listBackups, restoreBackup, serverStatus } from "@/lib/ipc";
+import type { BackupFile, HealthReport, RestoreResult, ServerStatus } from "@/lib/types";
 
 const CONFIRM_WORD = "RESTORE";
 
@@ -24,10 +24,13 @@ function formatBytes(n: number): string {
  * safety net (auto safety-backup, typed confirmation, server-stopped guard); the
  * UI mirrors those guards so the user understands what's happening before they act.
  */
-export function RestorePage({ health }: { health: HealthReport | null }) {
-  // The worldserver check reports its running state in the title.
-  const serverRunning = health?.checks.find((c) => c.id === "worldserver")?.title.includes("running") ?? false;
-
+// `health` left in the props for now in case future checks need it.
+// We deliberately don't read serverRunning from it — Health is cached on app
+// load and quickly goes stale, which is why the radio used to stick disabled
+// after stopping the server. Instead we poll the live process state.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function RestorePage({ health: _health }: { health: HealthReport | null }) {
+  const [status, setStatus] = useState<ServerStatus | null>(null);
   const [backups, setBackups] = useState<BackupFile[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [confirm, setConfirm] = useState("");
@@ -35,10 +38,23 @@ export function RestorePage({ health }: { health: HealthReport | null }) {
   const [result, setResult] = useState<RestoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Live worldserver/authserver state — restore is blocked if either is up.
+  const refreshStatus = async () => {
+    try {
+      setStatus(await serverStatus());
+    } catch {
+      /* a transient tasklist failure isn't fatal — next tick retries */
+    }
+  };
+
   useEffect(() => {
     void listBackups().then(setBackups);
+    void refreshStatus();
+    const t = setInterval(refreshStatus, 3000);
+    return () => clearInterval(t);
   }, []);
 
+  const serverRunning = (status?.worldserver.running ?? false) || (status?.authserver.running ?? false);
   const canRestore = !!selected && confirm.trim() === CONFIRM_WORD && !serverRunning && !busy;
 
   const run = async () => {
@@ -74,10 +90,20 @@ export function RestorePage({ health }: { health: HealthReport | null }) {
           <CardContent className="flex items-start gap-3 py-3">
             <ServerCrash className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
             <div>
-              <p className="text-sm font-medium text-rose-300">Stop your server before restoring</p>
+              <p className="text-sm font-medium text-rose-300">
+                Stop your server before restoring
+                {status && (
+                  <span className="ml-1 text-xs font-normal text-rose-400">
+                    ({[
+                      status.worldserver.running ? "worldserver" : null,
+                      status.authserver.running ? "authserver" : null,
+                    ].filter(Boolean).join(" + ")} running)
+                  </span>
+                )}
+              </p>
               <p className="mt-0.5 text-xs text-slate-400">
                 Restoring while the worldserver or authserver is running can corrupt your database.
-                Close them first, then re-check the Status page.
+                Stop them from the Server tab — Aegis re-checks every few seconds.
               </p>
             </div>
           </CardContent>

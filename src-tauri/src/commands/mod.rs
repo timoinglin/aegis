@@ -118,6 +118,17 @@ pub async fn set_gm_level(
     .map_err(|e| e.to_string())?
 }
 
+/// Delete an account (and its characters) via RA. Destructive — UI must confirm.
+#[tauri::command]
+pub async fn delete_account(app: AppHandle, username: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        accounts::delete_account(&app, &settings, &username)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Direct-DB GM level override (skips RA when it refuses with "low security").
 #[tauri::command]
 pub async fn set_gm_level_direct(

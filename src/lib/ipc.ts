@@ -155,6 +155,11 @@ export function setGmLevel(username: string, level: number, realmId = -1): Promi
   return invoke<string>("set_gm_level", { username, level, realmId });
 }
 
+/** Delete an account and ALL its characters via Remote Access. Destructive. */
+export function deleteAccount(username: string): Promise<string> {
+  return invoke<string>("delete_account", { username });
+}
+
 /** Direct-DB GM level override. Use only when RA refuses with "low security level". */
 export function setGmLevelDirect(username: string, level: number, realmId = -1): Promise<string> {
   return invoke<string>("set_gm_level_direct", { username, level, realmId });
