@@ -1,7 +1,7 @@
 use tauri::AppHandle;
 
 use crate::models::Settings;
-use crate::services::{logging, ra};
+use crate::services::{logging, mysql, ra, repack_conf};
 
 fn ra_config(s: &Settings) -> ra::RaConfig {
     ra::RaConfig {
@@ -145,6 +145,74 @@ pub fn set_gm_level(
         &format!(".account set gmlevel {username} {level} {realm_id}"),
         &[],
     )
+}
+
+/// Direct-DB GM-level set. Used as the override when RA refuses ("low security
+/// level") — RA can't grant a level >= its own, so changing the *owning* GM's
+/// level from RA is impossible and you need this path.
+///
+/// Writes straight to `<auth_db>.account_access` (verified live: GM level lives
+/// there on this build, NOT in `account.gmlevel`). Idempotent via ON DUPLICATE
+/// KEY UPDATE keyed on (id, RealmID). Setting level 0 removes the row instead
+/// (matches what the RA command does at level 0).
+pub fn set_gm_level_direct(
+    app: &AppHandle,
+    settings: &Settings,
+    username: &str,
+    level: u8,
+    realm_id: i32,
+) -> Result<String, String> {
+    validate_username(username)?;
+    if level > 9 {
+        return Err("GM level must be between 0 and 9.".into());
+    }
+    // Defensive: usernames are already whitespace-free; reject SQL metas too.
+    if username.contains('\'') || username.contains('\\') || username.contains(';') {
+        return Err("That username contains characters Aegis won't put in a SQL query.".into());
+    }
+
+    let auth_db = repack_conf::read(settings.server_path.as_deref(), settings.repack_path.as_deref())
+        .and_then(|i| i.databases.into_iter().next())
+        .unwrap_or_else(|| "auth".into());
+
+    // 1) Resolve the account id (TC stores usernames uppercased).
+    let id_sql = format!(
+        "SELECT id FROM `{auth_db}`.account WHERE username='{}'",
+        username.to_uppercase()
+    );
+    let id_raw = mysql::query(settings, &id_sql).map_err(|e| {
+        logging::log_op(app, "ERROR", "account/gmlevel_direct", &format!("lookup '{username}' -> {e}"), &settings.secrets());
+        "Couldn't look up that account — check your database connection in Settings.".to_string()
+    })?;
+    let id_str = id_raw.trim();
+    if id_str.is_empty() {
+        return Err(format!("There's no account named '{username}'."));
+    }
+    let id: u32 = id_str
+        .parse()
+        .map_err(|_| "The database returned an unexpected account id.".to_string())?;
+
+    // 2) Apply the change. Level 0 = remove the row (matches RA's "set 0" semantics).
+    let sql = if level == 0 {
+        format!(
+            "DELETE FROM `{auth_db}`.account_access WHERE id={id} AND RealmID={realm_id}"
+        )
+    } else {
+        format!(
+            "INSERT INTO `{auth_db}`.account_access (id, gmlevel, RealmID) \
+             VALUES ({id}, {level}, {realm_id}) \
+             ON DUPLICATE KEY UPDATE gmlevel={level}"
+        )
+    };
+    mysql::query(settings, &sql).map_err(|e| {
+        logging::log_op(app, "ERROR", "account/gmlevel_direct", &format!("upsert id={id} L{level}: {e}"), &settings.secrets());
+        "Couldn't update the GM level — check your database connection in Settings.".to_string()
+    })?;
+
+    let msg = format!("Set GM level of {username} to {level} (realm {realm_id}) directly in the database.");
+    logging::log_op(app, "INFO", "account/gmlevel_direct", &msg, &settings.secrets());
+    // Friendly nudge: TC caches account access until the user re-logs.
+    Ok(format!("{msg} Ask the player to log out and back in for it to take effect."))
 }
 
 pub fn set_password(

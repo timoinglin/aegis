@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { CheckCircle2, UserPlus, ShieldHalf, KeyRound } from "lucide-react";
+import { CheckCircle2, UserPlus, ShieldHalf, KeyRound, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createAccount, setAccountPassword, setGmLevel } from "@/lib/ipc";
+import { createAccount, setAccountPassword, setGmLevel, setGmLevelDirect } from "@/lib/ipc";
 import type { HealthReport } from "@/lib/types";
 import { GM_LEVELS } from "./gmLevels";
 import { RaSetupHelp } from "./RaSetupHelp";
@@ -105,16 +105,39 @@ function SetGmLevelCard({ disabled }: { disabled: boolean }) {
   const [level, setLevel] = useState(0);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result>(null);
+  // RA refused with "low security level" → show the direct-DB override path.
+  const [showOverride, setShowOverride] = useState(false);
+  const [confirmOverride, setConfirmOverride] = useState(false);
 
   const submit = async () => {
     setBusy(true);
     setResult(null);
+    setShowOverride(false);
     try {
       const msg = await setGmLevel(username, level);
       setResult({
         ok: true,
         message: msg || `Set "${username}" to GM level ${level}. They need to log out and back in for it to take effect.`,
       });
+    } catch (e) {
+      const text = String(e);
+      setResult({ ok: false, message: text });
+      // The RA refusal message — let the user override via direct SQL.
+      if (/Remote Access account can only assign/i.test(text) || /low security/i.test(text)) {
+        setShowOverride(true);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitDirect = async () => {
+    setBusy(true);
+    try {
+      const msg = await setGmLevelDirect(username, level);
+      setResult({ ok: true, message: msg });
+      setShowOverride(false);
+      setConfirmOverride(false);
     } catch (e) {
       setResult({ ok: false, message: String(e) });
     } finally {
@@ -144,6 +167,35 @@ function SetGmLevelCard({ disabled }: { disabled: boolean }) {
           {busy ? "Saving…" : "Set GM level"}
         </Button>
       </div>
+
+      {showOverride && (
+        <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+          <p className="flex items-center gap-1.5 font-medium text-amber-200">
+            <Database className="h-3.5 w-3.5" /> Override via direct SQL?
+          </p>
+          <p className="mt-1 text-slate-300">
+            Remote Access refused because it can't grant levels at or above its own. Aegis can write the change
+            straight to the <code className="rounded bg-slate-900 px-1">auth.account_access</code> table
+            instead — this bypasses RA's safety check, so only use it if you really mean to.
+          </p>
+          <label className="mt-2 flex items-center gap-2 text-slate-300">
+            <input
+              type="checkbox"
+              checked={confirmOverride}
+              onChange={(e) => setConfirmOverride(e.target.checked)}
+            />
+            I understand and want to apply this directly in the database.
+          </label>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setShowOverride(false); setConfirmOverride(false); }}>
+              Cancel
+            </Button>
+            <Button size="sm" disabled={busy || !confirmOverride} onClick={submitDirect}>
+              {busy ? "Applying…" : "Apply override"}
+            </Button>
+          </div>
+        </div>
+      )}
     </ActionCard>
   );
 }

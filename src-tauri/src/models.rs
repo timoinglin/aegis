@@ -151,6 +151,15 @@ pub struct MaintenanceResult {
     pub details: String,
 }
 
+/// Disk-size info for one database (data + indexes on disk in bytes).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DbSize {
+    pub name: String,
+    pub size_bytes: u64,
+    pub table_count: u32,
+}
+
 /// A character row, for the Characters list.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

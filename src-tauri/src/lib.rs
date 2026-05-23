@@ -32,6 +32,7 @@ pub fn run() {
             commands::uninstall_addon,
             commands::create_account,
             commands::set_gm_level,
+            commands::set_gm_level_direct,
             commands::set_account_password,
             commands::backup_dir,
             commands::create_backup,
@@ -41,6 +42,7 @@ pub fn run() {
             commands::schedule_status,
             commands::apply_schedule,
             commands::db_maintenance,
+            commands::db_sizes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aegis");

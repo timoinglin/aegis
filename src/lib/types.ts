@@ -93,6 +93,12 @@ export interface MaintenanceResult {
   details: string;
 }
 
+export interface DbSize {
+  name: string;
+  sizeBytes: number;
+  tableCount: number;
+}
+
 export interface CharacterInfo {
   guid: number;
   name: string;

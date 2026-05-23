@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, ServerCog } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, ServerCog, FileText } from "lucide-react";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { PathField } from "@/components/PathField";
 import {
@@ -183,7 +184,19 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               </button>
               {showRaHow && (
                 <ol className="list-inside list-decimal space-y-2 rounded-lg bg-slate-800/30 p-3 text-xs text-slate-300">
-                  <li>Open <span className="text-slate-200">worldserver.conf</span> (in your Repack folder), find <code className="rounded bg-slate-900 px-1">Ra.Enable = 0</code> and change the 0 to a 1, then save.</li>
+                  <li>
+                    Open <span className="text-slate-200">worldserver.conf</span> (in your Repack folder), find <code className="rounded bg-slate-900 px-1">Ra.Enable = 0</code> and change the 0 to a 1, then save.
+                    {draft.repackPath && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => { void openPath(`${draft.repackPath}\\worldserver.conf`).catch(() => {}); }}
+                      >
+                        <FileText className="h-3.5 w-3.5" /> Open worldserver.conf
+                      </Button>
+                    )}
+                  </li>
                   <li>Start or restart your worldserver from the <strong>Server</strong> tab.</li>
                   <li>
                     In the worldserver console window, type these two lines (choose your own name &amp; password):

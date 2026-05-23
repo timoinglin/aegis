@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ServerCog, Copy, Check } from "lucide-react";
+import { ServerCog, Copy, Check, FileText } from "lucide-react";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getSettings } from "@/lib/ipc";
@@ -11,12 +12,24 @@ import { getSettings } from "@/lib/ipc";
  */
 export function RaSetupHelp() {
   const [confPath, setConfPath] = useState<string>("your Repack folder");
+  const [havePath, setHavePath] = useState(false);
 
   useEffect(() => {
     void getSettings().then((s) => {
-      if (s.repackPath) setConfPath(`${s.repackPath}\\worldserver.conf`);
+      if (s.repackPath) {
+        setConfPath(`${s.repackPath}\\worldserver.conf`);
+        setHavePath(true);
+      }
     });
   }, []);
+
+  const openConf = async () => {
+    try {
+      await openPath(confPath);
+    } catch {
+      /* the user can still copy the path */
+    }
+  };
 
   return (
     <Card className="border-amber-500/40">
@@ -37,6 +50,11 @@ export function RaSetupHelp() {
             Open this file in Notepad:
           </p>
           <CodeLine text={confPath} />
+          {havePath && (
+            <Button variant="outline" size="sm" className="mt-2" onClick={openConf}>
+              <FileText className="h-3.5 w-3.5" /> Open worldserver.conf
+            </Button>
+          )}
           <p className="mt-2">
             Find the line <code className="rounded bg-slate-800 px-1">Ra.Enable = 0</code> and change
             the <strong>0</strong> to a <strong>1</strong>, then save.

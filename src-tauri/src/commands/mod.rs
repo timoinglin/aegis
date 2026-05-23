@@ -3,7 +3,7 @@
 
 use tauri::AppHandle;
 
-use crate::models::{AddonInfo, BackupFile, BackupResult, CharacterInfo, DbConnInfo, HealthReport, MaintenanceResult, RestoreResult, ScheduleStatus, ServerStatus, Settings};
+use crate::models::{AddonInfo, BackupFile, BackupResult, CharacterInfo, DbConnInfo, DbSize, HealthReport, MaintenanceResult, RestoreResult, ScheduleStatus, ServerStatus, Settings};
 use crate::services::{accounts, addons, backup, characters, health, logging, maintenance, paths, ra, repack_conf, restore, scheduler, server_control, settings_store};
 use crate::services::server_control::Service;
 
@@ -113,6 +113,22 @@ pub async fn set_gm_level(
     tauri::async_runtime::spawn_blocking(move || {
         let settings = settings_store::load(&app);
         accounts::set_gm_level(&app, &settings, &username, level, realm_id)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Direct-DB GM level override (skips RA when it refuses with "low security").
+#[tauri::command]
+pub async fn set_gm_level_direct(
+    app: AppHandle,
+    username: String,
+    level: u8,
+    realm_id: i32,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        accounts::set_gm_level_direct(&app, &settings, &username, level, realm_id)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -246,6 +262,17 @@ pub async fn db_maintenance(app: AppHandle, mode: String) -> Result<MaintenanceR
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// On-disk size + table count for each game database. Used by the Maintenance summary.
+#[tauri::command]
+pub async fn db_sizes(app: AppHandle) -> Vec<DbSize> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let settings = settings_store::load(&app);
+        maintenance::db_sizes(&settings)
+    })
+    .await
+    .unwrap_or_default()
 }
 
 // --- Characters (.pdump via Remote Access) ---

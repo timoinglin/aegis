@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Play, Square, RotateCw, Rocket, AlertTriangle } from "lucide-react";
+import { Play, Square, RotateCw, Rocket, AlertTriangle, FileText } from "lucide-react";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { serverStatus, serverAction } from "@/lib/ipc";
+import { getSettings, serverStatus, serverAction } from "@/lib/ipc";
 import type { ServerStatus, ServiceState } from "@/lib/types";
 
 type Row = { key: "mysql" | "authserver" | "worldserver"; label: string; note?: string };
@@ -18,6 +19,7 @@ export function ServerPage({ onChanged }: { onChanged: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [repackPath, setRepackPath] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -29,6 +31,7 @@ export function ServerPage({ onChanged }: { onChanged: () => void }) {
 
   useEffect(() => {
     void refresh();
+    void getSettings().then((s) => setRepackPath(s.repackPath || null));
     const t = setInterval(refresh, 4000);
     return () => clearInterval(t);
   }, [refresh]);
@@ -88,6 +91,18 @@ export function ServerPage({ onChanged }: { onChanged: () => void }) {
               state={status?.[row.key]}
               busy={busy}
               onAction={(action) => run(row.key, action, `${row.key}:${action}`)}
+              extra={
+                row.key === "worldserver" && repackPath ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Open worldserver.conf in Notepad"
+                    onClick={() => { void openPath(`${repackPath}\\worldserver.conf`).catch(() => {}); }}
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Open .conf
+                  </Button>
+                ) : null
+              }
             />
           ))}
         </CardContent>
@@ -101,11 +116,13 @@ function ServiceRow({
   state,
   busy,
   onAction,
+  extra,
 }: {
   row: Row;
   state: ServiceState | undefined;
   busy: string | null;
   onAction: (action: string) => void;
+  extra?: React.ReactNode;
 }) {
   const running = state?.running ?? false;
   const launchable = state?.launchable ?? false;
@@ -128,6 +145,7 @@ function ServiceRow({
         )}
       </div>
       <div className="flex gap-1.5">
+        {extra}
         <Button variant="outline" size="sm" disabled={anyBusy || running || !launchable} onClick={() => onAction("start")}>
           <Play className="h-3.5 w-3.5" /> Start
         </Button>

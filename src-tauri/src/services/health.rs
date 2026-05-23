@@ -12,7 +12,7 @@ const CAT_BACKUPS: &str = "Backups";
 pub fn report(app: &AppHandle) -> HealthReport {
     let settings = settings_store::load(app);
 
-    let mut checks = vec![
+    let checks = vec![
         check_mysql_bins(&settings),
         check_db(app, &settings),
         check_ra(&settings),
@@ -20,8 +20,8 @@ pub fn report(app: &AppHandle) -> HealthReport {
         check_backup_folder(app, &settings),
         check_backups(app, &settings),
         check_schedule(&settings),
+        check_safe_to_restore(),
     ];
-    checks.extend(reserved_slots());
 
     let overall = worst(&checks);
     HealthReport {
@@ -227,18 +227,40 @@ fn check_schedule(settings: &Settings) -> HealthCheck {
     }
 }
 
-/// Still-dormant slots — wired now, populated as their features land.
-fn reserved_slots() -> Vec<HealthCheck> {
-    let slot = |id: &str, title: &str| HealthCheck {
-        id: id.into(),
-        category: CAT_BACKUPS.into(),
-        status: HealthStatus::Unknown,
-        title: title.into(),
-        why: String::new(),
-        fix: vec![],
-        active: false,
-    };
-    vec![slot("server_stopped_for_restore", "Safe-to-restore check (coming in a later update)")]
+/// Tells the user whether Restore would currently work. Informational only —
+/// Restore enforces the same rule in code (preflight + typed-confirmation gate).
+/// Green when worldserver+authserver are stopped, neutral otherwise so the
+/// banner doesn't yell at people doing normal day-to-day server use.
+fn check_safe_to_restore() -> HealthCheck {
+    let world = server_state::is_running("worldserver.exe");
+    let auth = server_state::is_running("authserver.exe");
+    if !world && !auth {
+        HealthCheck {
+            id: "server_stopped_for_restore".into(),
+            category: CAT_BACKUPS.into(),
+            status: HealthStatus::Ok,
+            title: "Safe to restore — server is stopped".into(),
+            why: String::new(),
+            fix: vec![],
+            active: true,
+        }
+    } else {
+        let what = match (world, auth) {
+            (true, true) => "Worldserver and authserver are running",
+            (true, false) => "Worldserver is running",
+            (false, true) => "Authserver is running",
+            _ => unreachable!(),
+        };
+        HealthCheck {
+            id: "server_stopped_for_restore".into(),
+            category: CAT_BACKUPS.into(),
+            status: HealthStatus::Ok,
+            title: format!("Restore would be blocked — {what}"),
+            why: "Restoring over a running server would corrupt your data. Stop both servers from the Server tab before restoring.".into(),
+            fix: vec![],
+            active: true,
+        }
+    }
 }
 
 fn ok(id: &str, category: &str, title: &str) -> HealthCheck {
@@ -294,19 +316,11 @@ mod tests {
 
     #[test]
     fn dormant_slots_do_not_affect_overall() {
-        // An (unknown) reserved slot must not drag the banner away from "ok".
+        // Inactive checks must not drag the banner away from "ok".
         let checks = vec![
             chk(HealthStatus::Ok, true),
             chk(HealthStatus::Unknown, false),
         ];
         assert_eq!(worst(&checks), HealthStatus::Ok);
-    }
-
-    #[test]
-    fn reserved_slots_are_inactive_and_unknown() {
-        for slot in reserved_slots() {
-            assert!(!slot.active);
-            assert_eq!(slot.status, HealthStatus::Unknown);
-        }
     }
 }

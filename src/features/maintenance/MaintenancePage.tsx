@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Wrench, BarChart3, Sparkles, Stethoscope, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Wrench, BarChart3, Sparkles, Stethoscope, CheckCircle2, AlertTriangle, Database, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dbMaintenance } from "@/lib/ipc";
-import type { HealthReport, MaintenanceResult } from "@/lib/types";
+import { dbMaintenance, dbSizes } from "@/lib/ipc";
+import type { DbSize, HealthReport, MaintenanceResult } from "@/lib/types";
 
 type Mode = "analyze" | "optimize" | "repair";
 
@@ -33,6 +33,25 @@ export function MaintenancePage({ health }: { health: HealthReport | null }) {
   const [busy, setBusy] = useState<Mode | null>(null);
   const [result, setResult] = useState<MaintenanceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sizes, setSizes] = useState<DbSize[] | null>(null);
+  const [sizesBusy, setSizesBusy] = useState(false);
+
+  const refreshSizes = async () => {
+    if (!dbReady) return;
+    setSizesBusy(true);
+    try {
+      setSizes(await dbSizes());
+    } catch {
+      /* shown as "—" rows */
+    } finally {
+      setSizesBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshSizes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbReady]);
 
   const run = async (mode: Mode) => {
     setBusy(mode);
@@ -40,6 +59,8 @@ export function MaintenancePage({ health }: { health: HealthReport | null }) {
     setError(null);
     try {
       setResult(await dbMaintenance(mode));
+      // After optimize, sizes can change — re-pull them.
+      if (mode === "optimize") void refreshSizes();
     } catch (e) {
       setError(String(e));
     } finally {
@@ -111,6 +132,69 @@ export function MaintenancePage({ health }: { health: HealthReport | null }) {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-brand" />
+            Database sizes
+          </CardTitle>
+          <Button variant="ghost" size="icon" disabled={sizesBusy || !dbReady} onClick={refreshSizes} title="Refresh">
+            <RotateCw className={`h-3.5 w-3.5 ${sizesBusy ? "animate-spin" : ""}`} />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!sizes && !dbReady && (
+            <p className="text-xs text-slate-500">Connect to your database to see sizes.</p>
+          )}
+          {sizes && sizes.length === 0 && (
+            <p className="text-xs text-slate-500">No databases found.</p>
+          )}
+          {sizes && sizes.length > 0 && (
+            <div className="overflow-hidden rounded-md border border-slate-800">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-900/40 text-xs uppercase tracking-wide text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Database</th>
+                    <th className="px-3 py-2 text-right">Tables</th>
+                    <th className="px-3 py-2 text-right">Size on disk</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {sizes.map((s) => (
+                    <tr key={s.name}>
+                      <td className="px-3 py-2 font-medium text-slate-200">{s.name}</td>
+                      <td className="px-3 py-2 text-right text-slate-300">{s.tableCount.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right text-slate-300">{formatBytes(s.sizeBytes)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-900/30 font-semibold">
+                    <td className="px-3 py-2 text-slate-100">Total</td>
+                    <td className="px-3 py-2 text-right text-slate-200">
+                      {sizes.reduce((n, s) => n + s.tableCount, 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-100">
+                      {formatBytes(sizes.reduce((n, s) => n + s.sizeBytes, 0))}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = n / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`;
 }

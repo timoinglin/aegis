@@ -135,7 +135,55 @@ pub fn backup_all(app: &AppHandle, settings: &Settings) -> Result<String, String
     Ok(format!("Backed up {ok} of {} characters to {}", chars.len(), dest_dir.display()))
 }
 
-/// Import a character dump into an account via `.pdump load` (auto-assigns a free GUID).
+/// Find a character GUID that's free across EVERY character_* table, not just
+/// `characters`. The core's own `.pdump load` picker only checks `characters`,
+/// so orphan rows in tables like `character_cuf_profiles` (from old, deleted
+/// chars) cause "Transaction failed" duplicate-key errors. Passing this guid
+/// explicitly avoids that.
+fn safe_new_guid(settings: &Settings) -> u64 {
+    let db = character_db(settings);
+    let list_sql = format!(
+        "SELECT table_name FROM information_schema.columns \
+         WHERE table_schema='{db}' AND column_name='guid' AND \
+         (table_name='characters' OR table_name LIKE 'character\\_%')"
+    );
+    let mut max = 0u64;
+    if let Ok(out) = mysql::query(settings, &list_sql) {
+        for table in out.lines().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+            let q = format!("SELECT IFNULL(MAX(guid), 0) FROM `{db}`.`{table}`");
+            if let Ok(r) = mysql::query(settings, &q) {
+                if let Ok(n) = r.trim().parse::<u64>() {
+                    if n > max {
+                        max = n;
+                    }
+                }
+            }
+        }
+    }
+    max + 1
+}
+
+/// Read the source character's name from a `.pdump` dump file. The third
+/// single-quoted value of the `INSERT INTO \`characters\`` line is the name.
+fn original_name_from_dump(path: &Path) -> Option<String> {
+    use std::io::{BufRead, BufReader};
+    let f = std::fs::File::open(path).ok()?;
+    for line in BufReader::new(f).lines().map_while(Result::ok).take(100) {
+        if line.contains("INSERT INTO `characters` VALUES") {
+            let after = line.splitn(2, "VALUES (").nth(1)?;
+            // Split on `'`: [pre, guid, ", ", account, ", ", name, ...]
+            let parts: Vec<&str> = after.splitn(7, '\'').collect();
+            if parts.len() >= 6 {
+                return Some(parts[5].to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Import a character dump into an account via `.pdump load`. Aegis computes a
+/// safe new GUID and (if not given) the original name from the dump, then passes
+/// both explicitly so the import works even when orphan child rows are lurking.
 pub fn import(app: &AppHandle, settings: &Settings, file_path: &str, account: &str, new_name: &str) -> Result<String, String> {
     let repack = repack_dir(settings)?;
     let src = Path::new(file_path);
@@ -151,22 +199,32 @@ pub fn import(app: &AppHandle, settings: &Settings, file_path: &str, account: &s
     let staged = repack.join(bare);
     fs::copy(src, &staged).map_err(|e| format!("Couldn't stage the file: {e}"))?;
 
-    let mut cmd = format!(".pdump load {bare} {}", account.trim());
-    if !new_name.trim().is_empty() {
-        cmd.push(' ');
-        cmd.push_str(new_name.trim());
-    }
+    let final_name = if !new_name.trim().is_empty() {
+        new_name.trim().to_string()
+    } else {
+        original_name_from_dump(src).unwrap_or_else(|| "ImportedChar".into())
+    };
+    let new_guid = safe_new_guid(settings);
+    let cmd = format!(".pdump load {bare} {} {final_name} {new_guid}", account.trim());
+
     let result = ra::run_command(&ra_config(settings), &cmd).map_err(|e| friendly_ra(&e));
     let _ = fs::remove_file(&staged); // tidy up regardless
 
     let resp = result?;
     let l = resp.to_lowercase();
-    logging::log_op(app, "INFO", "character/import", &format!("into {account}: {}", resp.trim()), &settings.secrets());
+    logging::log_op(
+        app,
+        "INFO",
+        "character/import",
+        &format!("into {account} as {final_name} (guid {new_guid}): {}", resp.trim()),
+        &settings.secrets(),
+    );
     if l.contains("success") || l.contains("loaded") {
-        Ok(format!("Character imported into account {account}. {}", resp.trim()))
+        Ok(format!("Character imported into account {account} as {final_name}. {}", resp.trim()))
+    } else if l.contains("name") && (l.contains("used") || l.contains("taken") || l.contains("exist")) {
+        Err(format!("Import failed — that name is already taken. Pick a different new name. ({})", resp.trim()))
     } else if l.contains("fail") || l.contains("error") || l.contains("syntax") || l.contains("incorrect") || l.contains("not exist") {
-        // e.g. "Transaction failed" when the character would collide on the target account.
-        Err(format!("Import failed — {}. Try a different account, or a new name.", resp.trim()))
+        Err(format!("Import failed — {}. Try a different account or new name.", resp.trim()))
     } else {
         // pdump load is often terse on success; surface the server's words.
         Ok(format!("Done: {}", resp.trim()))

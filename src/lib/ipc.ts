@@ -5,6 +5,7 @@ import type {
   BackupResult,
   CharacterInfo,
   DbConnInfo,
+  DbSize,
   HealthReport,
   MaintenanceResult,
   RestoreResult,
@@ -71,6 +72,11 @@ export function serverAction(service: string, action: string): Promise<string> {
 /** Database upkeep. mode: "analyze" | "optimize" | "repair". */
 export function dbMaintenance(mode: "analyze" | "optimize" | "repair"): Promise<MaintenanceResult> {
   return invoke<MaintenanceResult>("db_maintenance", { mode });
+}
+
+/** On-disk size + table count for each game database. */
+export function dbSizes(): Promise<DbSize[]> {
+  return invoke<DbSize[]>("db_sizes");
 }
 
 // --- Characters (.pdump via Remote Access) ---
@@ -141,6 +147,11 @@ export function createAccount(username: string, password: string): Promise<strin
 
 export function setGmLevel(username: string, level: number, realmId = -1): Promise<string> {
   return invoke<string>("set_gm_level", { username, level, realmId });
+}
+
+/** Direct-DB GM level override. Use only when RA refuses with "low security level". */
+export function setGmLevelDirect(username: string, level: number, realmId = -1): Promise<string> {
+  return invoke<string>("set_gm_level_direct", { username, level, realmId });
 }
 
 export function setAccountPassword(username: string, newPassword: string): Promise<string> {

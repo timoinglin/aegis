@@ -1,7 +1,34 @@
 use tauri::AppHandle;
 
-use crate::models::{MaintenanceResult, Settings};
+use crate::models::{DbSize, MaintenanceResult, Settings};
 use crate::services::{backup, logging, mysql};
+
+/// On-disk size (data + indexes) and table count for each game database, queried
+/// from information_schema. Used by the Maintenance page summary card.
+pub fn db_sizes(settings: &Settings) -> Vec<DbSize> {
+    let dbs = backup::databases_to_backup(settings);
+    let mut out = Vec::with_capacity(dbs.len());
+    for db in dbs {
+        // data_length + index_length is the standard "size on disk" approximation;
+        // file_per_table makes this very close to actual .ibd footprint on InnoDB.
+        let sql = format!(
+            "SELECT IFNULL(SUM(data_length + index_length), 0), COUNT(*) \
+             FROM information_schema.tables WHERE table_schema='{db}'"
+        );
+        let (size_bytes, table_count) = mysql::query(settings, &sql)
+            .ok()
+            .and_then(|s| {
+                let mut p = s.split('\t');
+                Some((
+                    p.next()?.trim().parse::<u64>().ok()?,
+                    p.next()?.trim().parse::<u32>().ok()?,
+                ))
+            })
+            .unwrap_or((0, 0));
+        out.push(DbSize { name: db, size_bytes, table_count });
+    }
+    out
+}
 
 /// Run a maintenance pass over the live game databases using the bundled
 /// mysqlcheck. mode: "analyze" | "optimize" | "repair".
