@@ -44,7 +44,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     if (!draft) return;
     if (step === 1 && !draft.repackPath) void autodetectRepackPath(draft.serverPath).then((p) => p && set("repackPath", p));
-    if (step === 2 && !draft.serverPath) void autodetectServerPath().then((p) => p && set("serverPath", p));
+    if (step === 2 && !draft.serverPath) void autodetectServerPath(draft.repackPath).then((p) => p && set("serverPath", p));
     if (step === 4 && !draft.clientPath) void autodetectClientPath().then((p) => p && set("clientPath", p));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, ready]);
@@ -150,7 +150,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 value={draft.serverPath}
                 placeholder="C:\…\MOPPREMIUM\Database\_Server"
                 onChange={(v) => set("serverPath", v)}
-                onDetect={async () => set("serverPath", (await autodetectServerPath()) ?? draft.serverPath)}
+                onDetect={async () => set("serverPath", (await autodetectServerPath(draft.repackPath)) ?? draft.serverPath)}
               />
               <div className="grid grid-cols-3 gap-2">
                 <SmallField label="Host"><input className={inputCls} value={draft.dbHost} onChange={(e) => set("dbHost", e.target.value)} /></SmallField>
@@ -200,7 +200,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   <li>Start or restart your worldserver from the <strong>Server</strong> tab.</li>
                   <li>
                     In the worldserver console window, type these two lines (choose your own name &amp; password):
-                    <pre className="mt-1 select-all whitespace-pre-wrap rounded bg-slate-950 p-2 text-emerald-200">account create aegis ChangeThisPassword{"\n"}account set gmlevel aegis 9 -1</pre>
+                    <div className="mt-1 flex flex-col gap-1">
+                      <code className="select-all rounded bg-slate-950 px-2 py-1 text-emerald-200">account create aegis ChangeThisPassword</code>
+                      <code className="select-all rounded bg-slate-950 px-2 py-1 text-emerald-200">account set gmlevel aegis 9 -1</code>
+                    </div>
                   </li>
                   <li>Enter that same username and password above, then Test.</li>
                 </ol>

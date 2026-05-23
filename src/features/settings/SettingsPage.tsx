@@ -32,7 +32,7 @@ export function SettingsPage({ onSaved }: { onSaved: () => void }) {
   const detect = async () => {
     setBusy(true);
     try {
-      const found = await autodetectServerPath();
+      const found = await autodetectServerPath(settings.repackPath);
       if (found) set("serverPath", found);
     } finally {
       setBusy(false);

@@ -19,8 +19,8 @@ pub fn save_settings(app: AppHandle, settings: Settings) -> Result<Settings, Str
 }
 
 #[tauri::command]
-pub fn autodetect_server_path() -> Option<String> {
-    settings_store::autodetect_server_path()
+pub fn autodetect_server_path(repack_path: Option<String>) -> Option<String> {
+    settings_store::autodetect_server_path(repack_path.as_deref())
 }
 
 #[tauri::command]

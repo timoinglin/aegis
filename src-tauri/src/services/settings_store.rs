@@ -55,15 +55,18 @@ pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
     fs::write(&path, text).map_err(|e| e.to_string())
 }
 
-/// Best-effort probe for the repack's "_Server" folder. Validated by finding
-/// mysql\bin\mysqldump.exe inside it. Returns the first match, or None.
-///
-/// Find the repack's "_Server" folder generically — scan each drive's top-level
-/// folders for the `_Server` layout, whatever the install folder is named. This
-/// catches `D:\anything\...\Database\_Server` without hard-coding any path.
-pub fn autodetect_server_path() -> Option<String> {
-    // Relative layouts to probe under each top-level folder on a drive.
-    let rels = ["Database\\_Server", "_Server", "MOPPREMIUM\\Database\\_Server"];
+/// Best-effort probe for the repack's "_Server" folder. Prefer deriving from a
+/// known Repack path (sibling layout: `<root>\Repack` ⇔ `<root>\Database\_Server`),
+/// fall back to a bounded drive scan.
+pub fn autodetect_server_path(repack_path: Option<&str>) -> Option<String> {
+    // ...\Repack -> ...\Database\_Server (sibling under the install root).
+    if let Some(root) = repack_path.and_then(|rp| Path::new(rp).parent()) {
+        let server = root.join("Database").join("_Server");
+        if crate::services::mysql::has_bins(&server) {
+            return Some(server.to_string_lossy().into_owned());
+        }
+    }
+    let rels = ["Database\\_Server", "_Server"];
     scan_drives(&rels, |p| crate::services::mysql::has_bins(p))
 }
 
@@ -78,20 +81,34 @@ pub fn autodetect_repack_path(server_path: Option<&str>) -> Option<String> {
             return Some(repack.to_string_lossy().into_owned());
         }
     }
-    let rels = ["Repack", "MOPPREMIUM\\Repack"];
+    let rels = ["Repack"];
     scan_drives(&rels, |p| p.join("worldserver.exe").is_file())
 }
 
-/// For each drive, check `<drive>\<each top-level folder>\<rel>` against `matches`,
-/// returning the first hit. A shallow, bounded scan (no deep recursion).
+/// Probe `<drive>\<a>\<rel>` AND `<drive>\<a>\<b>\<rel>` against `matches` —
+/// covers `C:\Repack` and `C:\Games\MyMoP\Repack` alike without paying the
+/// cost of unbounded recursion. Returns the first hit.
 fn scan_drives(rels: &[&str], matches: impl Fn(&Path) -> bool) -> Option<String> {
+    let try_rels = |base: &Path, matches: &dyn Fn(&Path) -> bool| -> Option<String> {
+        for rel in rels {
+            let candidate = base.join(rel);
+            if matches(&candidate) {
+                return Some(candidate.to_string_lossy().into_owned());
+            }
+        }
+        None
+    };
     for drive in ["C:", "D:", "E:", "F:"] {
-        let Ok(children) = fs::read_dir(format!("{drive}\\")) else { continue };
-        for child in children.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
-            for rel in rels {
-                let candidate = child.join(rel);
-                if matches(&candidate) {
-                    return Some(candidate.to_string_lossy().into_owned());
+        let Ok(level1) = fs::read_dir(format!("{drive}\\")) else { continue };
+        for a in level1.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
+            if let Some(hit) = try_rels(&a, &matches) {
+                return Some(hit);
+            }
+            // One folder deeper, e.g. C:\Games\MyMoP\Database\_Server.
+            let Ok(level2) = fs::read_dir(&a) else { continue };
+            for b in level2.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
+                if let Some(hit) = try_rels(&b, &matches) {
+                    return Some(hit);
                 }
             }
         }
@@ -148,7 +165,19 @@ mod tests {
         // Only assert when the repack is actually present (keeps CI/other machines green).
         let known = r"C:\mop_repack\MOPPREMIUM\Database\_Server";
         if std::path::Path::new(known).join(r"mysql\bin\mysqldump.exe").exists() {
-            assert_eq!(autodetect_server_path().as_deref(), Some(known));
+            assert_eq!(autodetect_server_path(None).as_deref(), Some(known));
+        }
+    }
+
+    #[test]
+    fn server_derives_from_repack_sibling() {
+        // If Repack is at <root>\Repack, _Server is at <root>\Database\_Server.
+        let repack = r"C:\mop_repack\MOPPREMIUM\Repack";
+        let expected = r"C:\mop_repack\MOPPREMIUM\Database\_Server";
+        if std::path::Path::new(expected).join(r"mysql\bin\mysqldump.exe").exists()
+            && std::path::Path::new(repack).is_dir()
+        {
+            assert_eq!(autodetect_server_path(Some(repack)).as_deref(), Some(expected));
         }
     }
 }

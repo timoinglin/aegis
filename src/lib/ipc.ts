@@ -25,9 +25,10 @@ export function saveSettings(settings: Settings): Promise<Settings> {
   return invoke<Settings>("save_settings", { settings });
 }
 
-/** Probe common install locations for the repack's "_Server" folder. */
-export function autodetectServerPath(): Promise<string | null> {
-  return invoke<string | null>("autodetect_server_path");
+/** Probe common install locations for the repack's "_Server" folder. Pass the
+ * known Repack folder if you have it — Aegis derives the sibling _Server from it. */
+export function autodetectServerPath(repackPath: string | null = null): Promise<string | null> {
+  return invoke<string | null>("autodetect_server_path", { repackPath });
 }
 
 /** Guess the "Repack" folder (optionally using the known _Server path). */

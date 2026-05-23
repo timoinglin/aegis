@@ -138,11 +138,18 @@ function CodeLine({ text }: { text: string }) {
   );
 }
 
+/// Each line gets its own row + Copy button, so the user can grab one at a
+/// time. (A single shared `<pre>` with `select-all` selects everything on any
+/// click, which is what they reported breaking copy-one-line.)
 function CodeBlock({ lines }: { lines: string[] }) {
   return (
-    <div className="mt-2 flex items-start gap-2 rounded-md bg-slate-950 px-3 py-2">
-      <pre className="flex-1 select-all whitespace-pre-wrap text-xs text-emerald-200">{lines.join("\n")}</pre>
-      <CopyButton text={lines.join("\n")} />
+    <div className="mt-2 flex flex-col gap-1">
+      {lines.map((line, i) => (
+        <div key={i} className="flex items-center gap-2 rounded-md bg-slate-950 px-3 py-1">
+          <code className="flex-1 select-all break-all text-xs text-emerald-200">{line}</code>
+          <CopyButton text={line} />
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FolderSearch, CheckCircle2, AlertTriangle } from "lucide-react";
+import { FolderSearch, FolderOpen, CheckCircle2, AlertTriangle } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/button";
 import { validatePath } from "@/lib/ipc";
 
@@ -64,8 +65,22 @@ export function PathField({
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value || null)}
         />
+        <Button
+          variant="outline"
+          title="Pick a folder"
+          onClick={async () => {
+            const picked = await open({
+              directory: true,
+              multiple: false,
+              defaultPath: value || undefined,
+            });
+            if (typeof picked === "string" && picked) onChange(picked);
+          }}
+        >
+          <FolderOpen className="h-4 w-4" /> Browse
+        </Button>
         {onDetect && (
-          <Button variant="outline" onClick={onDetect}>
+          <Button variant="outline" onClick={onDetect} title="Auto-detect">
             <FolderSearch className="h-4 w-4" /> Detect
           </Button>
         )}
