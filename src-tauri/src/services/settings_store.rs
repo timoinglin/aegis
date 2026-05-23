@@ -99,9 +99,11 @@ fn scan_drives(rels: &[&str], matches: impl Fn(&Path) -> bool) -> Option<String>
     None
 }
 
-/// Best-effort guess for the WoW client folder (contains Wow.exe). Scans drive
-/// roots for a folder whose name looks like a MoP client.
+/// Best-effort guess for the WoW client folder. Scans drive roots for a folder
+/// whose name looks like a MoP client and that contains either an Interface\AddOns
+/// folder or any `wow*.exe` (different builds rename the exe).
 pub fn autodetect_client_path() -> Option<String> {
+    use crate::services::paths;
     let looks_like_client = |name: &str| {
         let n = name.to_lowercase();
         n.contains("pandaria") || n.contains("mists") || n.contains("5.4.8") || n.contains("548")
@@ -110,11 +112,16 @@ pub fn autodetect_client_path() -> Option<String> {
         let Ok(entries) = fs::read_dir(format!("{drive}\\")) else { continue };
         for entry in entries.flatten() {
             let p = entry.path();
-            if p.is_dir() {
-                if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
-                    if looks_like_client(name) && p.join("Wow.exe").is_file() {
-                        return Some(p.to_string_lossy().into_owned());
-                    }
+            if !p.is_dir() {
+                continue;
+            }
+            let Some(name) = p.file_name().and_then(|s| s.to_str()) else { continue };
+            if !looks_like_client(name) {
+                continue;
+            }
+            if let Some(s) = p.to_str() {
+                if paths::is_client_dir(s) {
+                    return Some(s.to_string());
                 }
             }
         }

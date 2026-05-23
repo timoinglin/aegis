@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, ServerCog, FileText } from "lucide-react";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { PathField } from "@/components/PathField";
 import {
@@ -8,6 +7,7 @@ import {
   autodetectRepackPath,
   autodetectServerPath,
   getSettings,
+  openInDefaultApp,
   readDbConfig,
   runHealthChecks,
   saveSettings,
@@ -191,7 +191,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                         variant="outline"
                         size="sm"
                         className="ml-2"
-                        onClick={() => { void openPath(`${draft.repackPath}\\worldserver.conf`).catch(() => {}); }}
+                        onClick={() => { void openInDefaultApp(`${draft.repackPath}\\worldserver.conf`).catch(() => {}); }}
                       >
                         <FileText className="h-3.5 w-3.5" /> Open worldserver.conf
                       </Button>

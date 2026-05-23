@@ -16,7 +16,7 @@ const OK_MSG: Record<Kind, string> = {
 const BAD_MSG: Record<Kind, string> = {
   server: "This folder doesn't have the database tools — pick the _Server folder.",
   repack: "This folder doesn't have worldserver.exe — pick your Repack folder.",
-  client: "This folder doesn't have Wow.exe — pick your client folder.",
+  client: "This folder doesn't look like a WoW client — pick the one with Interface\\AddOns (or Wow.exe / Wow_64.exe).",
 };
 
 /**

@@ -275,6 +275,29 @@ pub async fn db_sizes(app: AppHandle) -> Vec<DbSize> {
     .unwrap_or_default()
 }
 
+/// Open a local file with the OS default app (e.g. Notepad for .conf). Done in
+/// Rust because the opener plugin's `openPath` silently no-ops without a path
+/// scope, and a Rust shell-exec is rock-solid on Windows.
+#[tauri::command]
+pub fn open_in_default_app(path: String) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err(format!("That file doesn't exist: {path}"));
+    }
+    // `cmd /c start "" "<path>"` is the canonical Windows "open with default" call.
+    // The empty "" is the window title (start treats the first quoted arg as one).
+    Command::new("cmd")
+        .args(["/c", "start", "", &path])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Couldn't open the file: {e}"))
+}
+
 // --- Characters (.pdump via Remote Access) ---
 
 #[tauri::command]

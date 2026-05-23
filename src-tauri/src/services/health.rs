@@ -2,10 +2,11 @@ use chrono::Utc;
 use tauri::AppHandle;
 
 use crate::models::{HealthCheck, HealthReport, HealthStatus, Settings};
-use crate::services::{backup, logging, mysql, ra, server_state, settings_store};
+use crate::services::{backup, logging, mysql, paths, ra, server_state, settings_store};
 
 const CAT_CONNECTIVITY: &str = "Connectivity";
 const CAT_BACKUPS: &str = "Backups";
+const CAT_FOLDERS: &str = "Folders";
 
 /// Build the full report. Each active check probes real state; failures map to
 /// friendly what/why/fix text here, while the raw cause is logged (redacted).
@@ -14,6 +15,8 @@ pub fn report(app: &AppHandle) -> HealthReport {
 
     let checks = vec![
         check_mysql_bins(&settings),
+        check_repack_folder(&settings),
+        check_client_folder(&settings),
         check_db(app, &settings),
         check_ra(&settings),
         check_worldserver(),
@@ -60,6 +63,72 @@ fn check_mysql_bins(settings: &Settings) -> HealthCheck {
             ],
             active: true,
         }
+    }
+}
+
+/// The Repack folder still has worldserver.exe? Catches users who moved the
+/// install and didn't refresh Settings — many server features (RA, conf, char
+/// dumps) read from this folder, so a stale path breaks them silently otherwise.
+fn check_repack_folder(settings: &Settings) -> HealthCheck {
+    match settings.repack_path.as_deref() {
+        Some(p) if paths::is_repack_dir(p) => ok("repack_folder", CAT_FOLDERS, "Repack folder OK"),
+        Some(p) => HealthCheck {
+            id: "repack_folder".into(),
+            category: CAT_FOLDERS.into(),
+            status: HealthStatus::Error,
+            title: "Repack folder is missing or moved".into(),
+            why: format!(
+                "Aegis can't find worldserver.exe in {p}. If you moved or renamed your repack, point Settings at the new folder."
+            ),
+            fix: vec![
+                "Open Settings.".into(),
+                "Click Auto-detect on \"Repack folder\", or browse to where worldserver.exe lives now.".into(),
+                "Save & re-check.".into(),
+            ],
+            active: true,
+        },
+        None => HealthCheck {
+            id: "repack_folder".into(),
+            category: CAT_FOLDERS.into(),
+            status: HealthStatus::Warn,
+            title: "Repack folder not set".into(),
+            why: "Without it, Aegis can't read your worldserver.conf, manage characters, or talk to Remote Access.".into(),
+            fix: vec!["Open Settings and set your Repack folder.".into()],
+            active: true,
+        },
+    }
+}
+
+/// The WoW client folder still looks like a client? Add-on install needs it,
+/// and a moved/renamed client folder will only show up here.
+fn check_client_folder(settings: &Settings) -> HealthCheck {
+    match settings.client_path.as_deref() {
+        Some(p) if paths::is_client_dir(p) => ok("client_folder", CAT_FOLDERS, "WoW client folder OK"),
+        Some(p) => HealthCheck {
+            id: "client_folder".into(),
+            category: CAT_FOLDERS.into(),
+            status: HealthStatus::Warn,
+            title: "WoW client folder is missing or moved".into(),
+            why: format!(
+                "Aegis can't see an Interface\\AddOns folder or any Wow*.exe in {p}. Add-on install won't work until it points at your current client."
+            ),
+            fix: vec![
+                "Open Settings.".into(),
+                "Click Auto-detect on \"WoW client folder\", or browse to where the client lives now.".into(),
+                "Save & re-check.".into(),
+            ],
+            active: true,
+        },
+        None => HealthCheck {
+            id: "client_folder".into(),
+            category: CAT_FOLDERS.into(),
+            status: HealthStatus::Ok,
+            // Optional — only matters for add-on install — so missing is informational, not a warn.
+            title: "WoW client folder not set (optional)".into(),
+            why: "Set this if you want Aegis to install add-ons for you.".into(),
+            fix: vec![],
+            active: true,
+        },
     }
 }
 

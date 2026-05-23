@@ -50,7 +50,7 @@ pub struct Settings {
     pub server_path: Option<String>,
     /// The "Repack" folder (authserver.exe / worldserver.exe / *.conf).
     pub repack_path: Option<String>,
-    /// The WoW client folder (contains Wow.exe + Interface\AddOns).
+    /// The WoW client folder (any Wow*.exe + Interface\AddOns; client build varies).
     pub client_path: Option<String>,
     /// Where backups are written. None = the default (%APPDATA%\Aegis\backups).
     pub backup_dir: Option<String>,

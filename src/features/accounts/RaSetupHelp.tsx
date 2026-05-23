@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { ServerCog, Copy, Check, FileText } from "lucide-react";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getSettings } from "@/lib/ipc";
+import { getSettings, openInDefaultApp } from "@/lib/ipc";
 
 /**
  * One-time guide to enable Remote Access on a fresh repack. Account tools need
@@ -23,11 +22,13 @@ export function RaSetupHelp() {
     });
   }, []);
 
+  const [openErr, setOpenErr] = useState<string | null>(null);
   const openConf = async () => {
+    setOpenErr(null);
     try {
-      await openPath(confPath);
-    } catch {
-      /* the user can still copy the path */
+      await openInDefaultApp(confPath);
+    } catch (e) {
+      setOpenErr(String(e));
     }
   };
 
@@ -51,9 +52,12 @@ export function RaSetupHelp() {
           </p>
           <CodeLine text={confPath} />
           {havePath && (
-            <Button variant="outline" size="sm" className="mt-2" onClick={openConf}>
-              <FileText className="h-3.5 w-3.5" /> Open worldserver.conf
-            </Button>
+            <div className="mt-2 flex flex-col gap-1">
+              <Button variant="outline" size="sm" className="w-fit" onClick={openConf}>
+                <FileText className="h-3.5 w-3.5" /> Open worldserver.conf
+              </Button>
+              {openErr && <p className="text-xs text-rose-300">{openErr}</p>}
+            </div>
           )}
           <p className="mt-2">
             Find the line <code className="rounded bg-slate-800 px-1">Ra.Enable = 0</code> and change

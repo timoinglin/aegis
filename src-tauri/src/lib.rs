@@ -43,6 +43,7 @@ pub fn run() {
             commands::apply_schedule,
             commands::db_maintenance,
             commands::db_sizes,
+            commands::open_in_default_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aegis");

@@ -79,6 +79,11 @@ export function dbSizes(): Promise<DbSize[]> {
   return invoke<DbSize[]>("db_sizes");
 }
 
+/** Open a local file with the OS default app (Notepad for .conf, etc.). */
+export function openInDefaultApp(path: string): Promise<void> {
+  return invoke<void>("open_in_default_app", { path });
+}
+
 // --- Characters (.pdump via Remote Access) ---
 
 export function listCharacters(): Promise<CharacterInfo[]> {

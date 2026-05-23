@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Play, Square, RotateCw, Rocket, AlertTriangle, FileText } from "lucide-react";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSettings, serverStatus, serverAction } from "@/lib/ipc";
+import { getSettings, openInDefaultApp, serverStatus, serverAction } from "@/lib/ipc";
 import type { ServerStatus, ServiceState } from "@/lib/types";
 
 type Row = { key: "mysql" | "authserver" | "worldserver"; label: string; note?: string };
@@ -97,7 +96,7 @@ export function ServerPage({ onChanged }: { onChanged: () => void }) {
                     variant="outline"
                     size="sm"
                     title="Open worldserver.conf in Notepad"
-                    onClick={() => { void openPath(`${repackPath}\\worldserver.conf`).catch(() => {}); }}
+                    onClick={() => { void openInDefaultApp(`${repackPath}\\worldserver.conf`).catch(() => {}); }}
                   >
                     <FileText className="h-3.5 w-3.5" /> Open .conf
                   </Button>
